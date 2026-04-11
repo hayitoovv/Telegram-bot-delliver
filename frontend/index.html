@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Food Delivery</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>🍔 Food Delivery</h1>
+    </header>
+
+    <!-- Kategoriyalar -->
+    <section id="categories-section">
+        <div class="categories-scroll" id="categories-container">
+            <button class="category-btn active" data-id="all">Barchasi</button>
+        </div>
+    </section>
+
+    <!-- Mahsulotlar -->
+    <section id="products-section">
+        <div class="products-grid" id="products-container">
+            <div class="loading">Yuklanmoqda...</div>
+        </div>
+    </section>
+
+    <!-- Savat tugmasi -->
+    <div class="cart-fab" id="cart-fab" style="display: none;" onclick="showCart()">
+        🛒 <span id="cart-count">0</span> ta | <span id="cart-total">0</span> UZS
+    </div>
+
+    <!-- Savat modal -->
+    <div class="modal-overlay" id="cart-modal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🛒 Savat</h2>
+                <button class="close-btn" onclick="hideCart()">✕</button>
+            </div>
+            <div class="modal-body" id="cart-items"></div>
+            <div class="cart-summary">
+                <div class="cart-total-row">
+                    <span>Jami:</span>
+                    <strong id="cart-modal-total">0 UZS</strong>
+                </div>
+                <div id="min-order-warning" class="warning" style="display: none;">
+                    Minimal buyurtma: <span id="min-amount"></span> UZS
+                </div>
+                <button class="btn-primary" id="checkout-btn" onclick="showCheckout()">
+                    Buyurtma berish
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout modal -->
+    <div class="modal-overlay" id="checkout-modal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>📦 Buyurtma</h2>
+                <button class="close-btn" onclick="hideCheckout()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>📍 Manzil</label>
+                    <textarea id="address-input" placeholder="Manzilingizni kiriting..." rows="2"></textarea>
+                    <button class="btn-secondary" onclick="sendLocation()">
+                        📍 Lokatsiyani yuborish
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label>💬 Izoh (ixtiyoriy)</label>
+                    <textarea id="comment-input" placeholder="Qo'shimcha izoh..." rows="2"></textarea>
+                </div>
+                <div class="order-summary" id="order-summary"></div>
+                <button class="btn-primary btn-order" id="submit-order-btn" onclick="submitOrder()">
+                    ✅ Buyurtmani tasdiqlash
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success modal -->
+    <div class="modal-overlay" id="success-modal" style="display: none;">
+        <div class="modal modal-success">
+            <div class="success-icon">✅</div>
+            <h2>Buyurtma qabul qilindi!</h2>
+            <p>Buyurtmangiz tez orada tayyorlanadi.</p>
+            <button class="btn-primary" onclick="closeApp()">Yopish</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

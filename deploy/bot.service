@@ -1,0 +1,15 @@
+[Unit]
+Description=Food Delivery Telegram Bot
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/food-delivery/bot
+EnvironmentFile=/var/www/food-delivery/.env
+ExecStart=/var/www/food-delivery/venv/bin/python bot.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
