@@ -15,7 +15,7 @@ document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.th
 document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f0f0f0');
 
 // Konfiguratsiya
-const API_BASE = window.APP_CONFIG?.API_BASE || '';
+const API_BASE = window.APP_CONFIG?.API_BASE || 'http://87.192.226.203';
 const MIN_ORDER_AMOUNT = window.APP_CONFIG?.MIN_ORDER_AMOUNT || 40000;
 
 // State
