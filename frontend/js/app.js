@@ -191,14 +191,21 @@ async function loadCategories() {
         const data = await apiGet('categories/');
         categories = data.results || data;
         renderCategoriesScroll();
-        // Birinchi kategoriyani avtomatik tanlash
-        if (categories.length && !selectedCategory) {
-            selectCategory(categories[0].id, categories[0].name);
-        }
+        await loadAllProducts();
     } catch (e) {
         console.error('Kategoriyalar yuklanmadi:', e);
         document.getElementById('categories-scroll').innerHTML =
             `<div class="empty-state">${txt('categories_error')}</div>`;
+    }
+}
+
+async function loadAllProducts() {
+    try {
+        const data = await apiGet('products/');
+        products = data.results || data;
+        renderAllCategoryProducts();
+    } catch (e) {
+        console.error('Mahsulotlar yuklanmadi:', e);
     }
 }
 
@@ -209,12 +216,61 @@ async function loadProducts(categoryId) {
             : 'products/';
         const data = await apiGet(endpoint);
         products = data.results || data;
-        renderProducts();
     } catch (e) {
         console.error('Mahsulotlar yuklanmadi:', e);
-        document.getElementById('products-container').innerHTML =
-            `<div class="empty-state">${txt('products_error')}</div>`;
     }
+}
+
+function renderAllCategoryProducts() {
+    const container = document.getElementById('all-products-section');
+
+    if (!categories.length) {
+        container.innerHTML = `<div class="empty-state">${txt('no_categories')}</div>`;
+        return;
+    }
+
+    let html = '';
+    categories.forEach(cat => {
+        let catProducts = products.filter(p => p.category === cat.id);
+        if (searchQuery) {
+            catProducts = catProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
+        if (!catProducts.length) return;
+
+        html += `<div class="category-block" id="cat-${cat.id}">`;
+        html += `<div class="category-block-title">${cat.name}</div>`;
+        html += `<div class="products-hscroll">`;
+
+        catProducts.forEach(product => {
+            const qty = cart[product.id]?.quantity || 0;
+            const imageHtml = product.image
+                ? `<img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">`
+                : `<div class="product-image no-image">🍽️</div>`;
+
+            html += `
+            <div class="product-hcard">
+                ${imageHtml}
+                <div class="product-info">
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-price-row">
+                        <div class="product-price">${formatPrice(product.price)} UZS</div>
+                        ${qty === 0
+                            ? `<button class="btn-add-small" onclick="addToCart(${product.id})">+</button>`
+                            : `<div class="quantity-control">
+                                <button class="qty-btn" onclick="changeQty(${product.id}, -1)">−</button>
+                                <span class="qty-value">${qty}</span>
+                                <button class="qty-btn" onclick="changeQty(${product.id}, 1)">+</button>
+                               </div>`
+                        }
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        html += `</div></div>`;
+    });
+
+    container.innerHTML = html || `<div class="empty-state">${txt('no_products')}</div>`;
 }
 
 // ============================================
@@ -343,23 +399,19 @@ function renderOrderSummary() {
 
 function selectCategory(id, name) {
     selectedCategory = id;
-    searchQuery = '';
-    document.getElementById('search-input').value = '';
-    document.getElementById('products-title').textContent = name;
-    document.getElementById('products-container').innerHTML = `<div class="loading">${txt('loading')}</div>`;
     renderCategoriesScroll();
-    loadProducts(id);
+    const el = document.getElementById(`cat-${id}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function runSearch() {
     const q = document.getElementById('search-input').value.trim();
     searchQuery = q;
-    if (!q) return;
-
-    selectedCategory = null;
-    renderCategoriesScroll();
-    document.getElementById('products-title').textContent = `"${q}"`;
-    loadProducts(null).then(renderProducts);
+    if (!q) {
+        renderAllCategoryProducts();
+        return;
+    }
+    renderAllCategoryProducts();
 }
 
 // ============================================
@@ -378,7 +430,7 @@ function addToCart(productId) {
     };
 
     updateCartUI();
-    renderProducts();
+    renderAllCategoryProducts();
     tg.HapticFeedback?.impactOccurred('light');
 }
 
@@ -389,7 +441,7 @@ function changeQty(productId, delta) {
     if (cart[productId].quantity <= 0) delete cart[productId];
 
     updateCartUI();
-    renderProducts();
+    renderAllCategoryProducts();
     renderCart();
     tg.HapticFeedback?.impactOccurred('light');
 }
@@ -833,9 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (input) {
         input.addEventListener('input', (e) => {
             searchQuery = e.target.value;
-            if (document.getElementById('products-view').style.display !== 'none') {
-                renderProducts();
-            }
+            renderAllCategoryProducts();
         });
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') runSearch();

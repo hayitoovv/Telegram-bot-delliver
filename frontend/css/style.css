@@ -584,18 +584,104 @@ body {
     font-weight: 700;
 }
 
-/* Selected category title */
-.category-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 14px 8px;
+/* Category section with horizontal products */
+.category-block {
+    margin-bottom: 20px;
 }
 
-.category-title-row h2 {
+.category-block-title {
     font-size: 20px;
     font-weight: 700;
     color: var(--brand-green-darker);
+    padding: 10px 14px 8px;
+}
+
+.products-hscroll {
+    display: flex;
+    gap: 12px;
+    padding: 0 14px 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.products-hscroll::-webkit-scrollbar { display: none; }
+
+.product-hcard {
+    flex-shrink: 0;
+    width: 160px;
+    background: #ffffff;
+    border: 1.5px solid var(--brand-border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.08);
+}
+
+.product-hcard:active { transform: scale(0.98); }
+
+.product-hcard .product-image {
+    width: 100%;
+    height: 130px;
+    object-fit: cover;
+    background: #e0e0e0;
+}
+
+.product-hcard .product-info {
+    padding: 8px 10px 10px;
+}
+
+.product-hcard .product-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.3;
+    color: var(--brand-green-darker);
+}
+
+.product-hcard .product-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+}
+
+.product-hcard .product-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-green-dark);
+    margin-bottom: 0;
+}
+
+.product-hcard .btn-add-small {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    background: var(--brand-green);
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.product-hcard .quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.product-hcard .qty-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+}
+
+.product-hcard .qty-value {
+    font-size: 14px;
+    min-width: 20px;
 }
 
 /* Products view */
