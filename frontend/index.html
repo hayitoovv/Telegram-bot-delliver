@@ -50,9 +50,35 @@
     <!-- All categories with products -->
     <section id="all-products-section"></section>
 
-    <!-- Savat tugmasi -->
-    <div class="cart-fab" id="cart-fab" style="display: none;" onclick="showCart()">
-        🛒 <span id="cart-count">0</span> ta | <span id="cart-total">0</span> UZS
+    <!-- Bottom cart bar -->
+    <div class="cart-bottom-bar" id="cart-fab" style="display: none;" onclick="showCart()">
+        <div class="cart-bar-icon">🛒</div>
+        <div class="cart-bar-total"><span id="cart-total">0</span> UZS</div>
+    </div>
+
+    <!-- Product detail modal -->
+    <div class="modal-overlay" id="product-detail-modal" style="display: none;">
+        <div class="modal modal-full product-detail">
+            <div class="pd-image-wrap">
+                <img id="pd-image" src="" alt="">
+                <div class="pd-drag-handle"></div>
+            </div>
+            <div class="pd-info">
+                <div class="pd-name" id="pd-name"></div>
+                <div class="pd-price" id="pd-price"></div>
+                <div class="pd-desc" id="pd-desc"></div>
+            </div>
+            <div class="pd-bottom">
+                <div class="pd-qty-control">
+                    <button class="pd-qty-btn" onclick="pdChangeQty(-1)">−</button>
+                    <span class="pd-qty-value" id="pd-qty">1</span>
+                    <button class="pd-qty-btn pd-qty-plus" onclick="pdChangeQty(1)">+</button>
+                </div>
+                <button class="pd-add-btn" id="pd-add-btn" onclick="pdAddToCart()">
+                    🛒 <span data-i18n="add_to_cart">Savatga qo'shish</span>
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Toast -->
@@ -182,25 +208,39 @@
         </div>
     </div>
 
-    <!-- Savat modal -->
+    <!-- Cart full page -->
     <div class="modal-overlay" id="cart-modal" style="display: none;">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>🛒 <span data-i18n="cart_title">Savat</span></h2>
-                <button class="close-btn" onclick="hideCart()">✕</button>
-            </div>
-            <div class="modal-body" id="cart-items"></div>
-            <div class="cart-summary">
-                <div class="cart-total-row">
-                    <span data-i18n="total">Jami:</span>
-                    <strong id="cart-modal-total">0 UZS</strong>
-                </div>
-                <div id="min-order-warning" class="warning" style="display: none;">
-                    <span data-i18n="min_order">Minimal buyurtma:</span> <span id="min-amount"></span> UZS
-                </div>
-                <button class="btn-primary" id="checkout-btn" onclick="showCheckout()" data-i18n="place_order">
-                    Buyurtma berish
+        <div class="modal modal-full cart-page">
+            <div class="cart-page-header">
+                <button class="cart-back-btn" onclick="hideCart()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
+                <h2 data-i18n="cart_title">Savatcha</h2>
+                <button class="cart-trash-btn" onclick="showClearCartDialog()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                </button>
+            </div>
+            <div class="cart-page-items" id="cart-items"></div>
+            <div class="cart-page-bottom">
+                <div class="cart-page-total">
+                    <div class="cart-page-total-amount" id="cart-modal-total">0 UZS</div>
+                    <div class="cart-page-total-label" data-i18n="total_label">Umumiy</div>
+                </div>
+                <button class="cart-continue-btn" id="checkout-btn" onclick="showCheckout()">
+                    <span data-i18n="continue_btn">Davom etish</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear cart dialog -->
+    <div class="dialog-overlay" id="clear-cart-dialog" style="display: none;">
+        <div class="dialog-box">
+            <button class="dialog-close" onclick="hideClearCartDialog()">✕</button>
+            <p class="dialog-text" data-i18n="clear_cart_confirm">Savatdan hamma mahsulotlar o'chirilsinmi?</p>
+            <div class="dialog-actions">
+                <button class="dialog-btn dialog-btn-cancel" onclick="hideClearCartDialog()" data-i18n="cancel_btn">Bekor qilish</button>
+                <button class="dialog-btn dialog-btn-delete" onclick="clearCart()" data-i18n="delete_btn">O'chirish</button>
             </div>
         </div>
     </div>

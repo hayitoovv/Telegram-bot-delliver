@@ -53,6 +53,13 @@ const UI_TEXTS = {
         address_label: "Manzil",
         select_from_map: "Xaritadan tanlash",
         comment_label: "Izoh (ixtiyoriy)",
+        add_to_cart: "Savatga qo'shish",
+        go_to_cart: "Savatga o'tish",
+        total_label: "Umumiy",
+        continue_btn: "Davom etish",
+        clear_cart_confirm: "Savatdan hamma mahsulotlar o'chirilsinmi?",
+        cancel_btn: "Bekor qilish",
+        delete_btn: "O'chirish",
     },
     ru: {
         search_placeholder: "Поиск продуктов",
@@ -87,6 +94,13 @@ const UI_TEXTS = {
         address_label: "Адрес",
         select_from_map: "Выбрать на карте",
         comment_label: "Комментарий (необязательно)",
+        add_to_cart: "В корзину",
+        go_to_cart: "Перейти в корзину",
+        total_label: "Общая",
+        continue_btn: "Продолжить",
+        clear_cart_confirm: "Удалить все товары из корзины?",
+        cancel_btn: "Отмена",
+        delete_btn: "Удалить",
     },
 };
 
@@ -248,15 +262,15 @@ function renderAllCategoryProducts() {
                 : `<div class="product-image no-image">🍽️</div>`;
 
             html += `
-            <div class="product-hcard">
+            <div class="product-hcard" onclick="openProductDetail(${product.id})">
                 ${imageHtml}
                 <div class="product-info">
                     <div class="product-name">${product.name}</div>
                     <div class="product-price-row">
                         <div class="product-price">${formatPrice(product.price)} UZS</div>
                         ${qty === 0
-                            ? `<button class="btn-add-small" onclick="addToCart(${product.id})">+</button>`
-                            : `<div class="quantity-control">
+                            ? `<button class="btn-add-small" onclick="event.stopPropagation(); openProductDetail(${product.id})">+</button>`
+                            : `<div class="quantity-control" onclick="event.stopPropagation()">
                                 <button class="qty-btn" onclick="changeQty(${product.id}, -1)">−</button>
                                 <span class="qty-value">${qty}</span>
                                 <button class="qty-btn" onclick="changeQty(${product.id}, 1)">+</button>
@@ -352,21 +366,59 @@ function renderCart() {
 
     let html = '';
     items.forEach(item => {
+        const imgHtml = item.image
+            ? `<img class="cart-page-item-img" src="${item.image}" alt="${item.name}">`
+            : `<div class="cart-page-item-img" style="display:flex;align-items:center;justify-content:center;font-size:24px;">🍽️</div>`;
         html += `
-        <div class="cart-item">
-            <div class="cart-item-info">
-                <div class="cart-item-name">${item.name}</div>
-                <div class="cart-item-price">${formatPrice(item.price)} UZS</div>
+        <div class="cart-page-item">
+            ${imgHtml}
+            <div class="cart-page-item-info">
+                <div class="cart-page-item-name">${item.name}</div>
+                <div class="cart-page-item-price">${formatPrice(item.price * item.quantity)} UZS</div>
             </div>
-            <div class="cart-item-controls">
-                <button class="qty-btn" onclick="changeQty(${item.id}, -1)">−</button>
-                <span class="qty-value">${item.quantity}</span>
-                <button class="qty-btn" onclick="changeQty(${item.id}, 1)">+</button>
+            <div class="cart-page-item-qty">
+                <button class="cpq-btn" onclick="cartChangeQty(${item.id}, -1)">−</button>
+                <span class="cpq-val">${item.quantity}</span>
+                <button class="cpq-btn cpq-plus" onclick="cartChangeQty(${item.id}, 1)">+</button>
             </div>
-            <div class="cart-item-subtotal">${formatPrice(item.price * item.quantity)} UZS</div>
         </div>`;
     });
     container.innerHTML = html;
+}
+
+function cartChangeQty(productId, delta) {
+    if (!cart[productId]) return;
+
+    cart[productId].quantity += delta;
+    if (cart[productId].quantity <= 0) {
+        delete cart[productId];
+    }
+
+    if (Object.keys(cart).length === 0) {
+        hideCart();
+    }
+
+    updateCartUI();
+    renderCart();
+    renderAllCategoryProducts();
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function showClearCartDialog() {
+    document.getElementById('clear-cart-dialog').style.display = 'flex';
+}
+
+function hideClearCartDialog() {
+    document.getElementById('clear-cart-dialog').style.display = 'none';
+}
+
+function clearCart() {
+    cart = {};
+    hideClearCartDialog();
+    hideCart();
+    updateCartUI();
+    renderAllCategoryProducts();
+    tg.HapticFeedback?.notificationOccurred('success');
 }
 
 function renderOrderSummary() {
@@ -418,20 +470,78 @@ function runSearch() {
 // Cart
 // ============================================
 
-function addToCart(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
+// Product detail modal
+let pdProduct = null;
+let pdQty = 1;
 
-    cart[productId] = {
-        id: product.id,
-        name: product.name,
-        price: Number(product.price),
-        quantity: 1,
+function openProductDetail(productId) {
+    pdProduct = products.find(p => p.id === productId);
+    if (!pdProduct) return;
+
+    pdQty = cart[productId]?.quantity || 1;
+
+    document.getElementById('pd-image').src = pdProduct.image || '';
+    document.getElementById('pd-name').textContent = pdProduct.name;
+    document.getElementById('pd-price').textContent = formatPrice(pdProduct.price) + ' UZS';
+    document.getElementById('pd-desc').textContent = pdProduct.description || '';
+    document.getElementById('pd-qty').textContent = pdQty;
+    updatePdButton();
+
+    document.getElementById('product-detail-modal').style.display = 'flex';
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function updatePdButton() {
+    const btn = document.getElementById('pd-add-btn');
+    const inCart = cart[pdProduct.id];
+    if (inCart) {
+        btn.innerHTML = '🛒 ' + txt('go_to_cart');
+        btn.className = 'pd-add-btn go-to-cart';
+        btn.onclick = () => { hideProductDetail(); showCart(); };
+    } else {
+        btn.innerHTML = '🛒 ' + txt('add_to_cart');
+        btn.className = 'pd-add-btn';
+        btn.onclick = pdAddToCart;
+    }
+}
+
+function hideProductDetail() {
+    document.getElementById('product-detail-modal').style.display = 'none';
+}
+
+function pdChangeQty(delta) {
+    pdQty = Math.max(1, pdQty + delta);
+    document.getElementById('pd-qty').textContent = pdQty;
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function pdAddToCart() {
+    if (!pdProduct) return;
+
+    cart[pdProduct.id] = {
+        id: pdProduct.id,
+        name: pdProduct.name,
+        price: Number(pdProduct.price),
+        image: pdProduct.image || '',
+        quantity: pdQty,
     };
 
     updateCartUI();
     renderAllCategoryProducts();
-    tg.HapticFeedback?.impactOccurred('light');
+    hideProductDetail();
+    tg.HapticFeedback?.notificationOccurred('success');
+}
+
+function addToCart(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    if (cart[productId]) {
+        openProductDetail(productId);
+        return;
+    }
+
+    openProductDetail(productId);
 }
 
 function changeQty(productId, delta) {
@@ -460,8 +570,7 @@ function updateCartUI() {
     const total = getCartTotal();
 
     if (count > 0) {
-        fab.style.display = 'block';
-        document.getElementById('cart-count').textContent = count;
+        fab.style.display = 'flex';
         document.getElementById('cart-total').textContent = formatPrice(total);
     } else {
         fab.style.display = 'none';
@@ -469,15 +578,13 @@ function updateCartUI() {
 
     document.getElementById('cart-modal-total').textContent = formatPrice(total) + ' UZS';
 
-    const warning = document.getElementById('min-order-warning');
     const checkoutBtn = document.getElementById('checkout-btn');
     if (total < MIN_ORDER_AMOUNT && count > 0) {
-        warning.style.display = 'block';
-        document.getElementById('min-amount').textContent = formatPrice(MIN_ORDER_AMOUNT);
         checkoutBtn.disabled = true;
+        checkoutBtn.innerHTML = `<span>${txt('continue_btn')}</span><span class="min-order-hint">Min. buyurtma ${formatPrice(MIN_ORDER_AMOUNT)} UZS</span>`;
     } else {
-        warning.style.display = 'none';
-        checkoutBtn.disabled = false;
+        checkoutBtn.disabled = count === 0;
+        checkoutBtn.innerHTML = `<span>${txt('continue_btn')}</span>`;
     }
 }
 
