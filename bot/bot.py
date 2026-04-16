@@ -5,8 +5,8 @@ import asyncio
 import logging
 import httpx
 from dotenv import load_dotenv
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 USER_ID_RE = re.compile(r"🆔\s*(\d+)")
 
@@ -33,7 +33,7 @@ TEXTS = {
     'uz': {
         'welcome': "Salom, {name}! 👋\n\n🍕 Food Delivery botiga xush kelibsiz!\n\nQuyidagi menyudan tanlang:",
         'menu': "Menyu",
-        'change_lang': "🇷🇺 Русский тил",
+        'change_lang': "🌐 Tilni o'zgartirish",
         'chat': "Chat",
         'my_orders': "Mening buyurtmalarim",
         'admin_panel': "🛠 Admin panel",
@@ -49,7 +49,7 @@ TEXTS = {
     'ru': {
         'welcome': "Привет, {name}! 👋\n\n🍕 Добро пожаловать в Food Delivery бот!\n\nВыберите из меню:",
         'menu': "Меню",
-        'change_lang': "🇺🇿 O'zbek tili",
+        'change_lang': "🌐 Изменить язык",
         'chat': "Чат",
         'my_orders': "Мои заказы",
         'admin_panel': "🛠 Админ панель",
@@ -153,29 +153,28 @@ async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Til tanlash inline tugmalari."""
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🇺🇿 O'zbek", callback_data="lang_uz"),
-            InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru"),
-        ]
-    ])
+    """Til tanlash keyboard tugmalari."""
     lang = await get_user_lang(update.effective_user.id)
+    keyboard = ReplyKeyboardMarkup([
+        [KeyboardButton("🇺🇿 O'zbek tili")],
+        [KeyboardButton("🇷🇺 Русский язык")],
+    ], resize_keyboard=True, one_time_keyboard=True)
     await update.message.reply_text(t(lang, 'choose_lang'), reply_markup=keyboard)
 
 
-async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Inline tugma bosilganda tilni o'zgartirish."""
-    query = update.callback_query
-    await query.answer()
+async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Til tanlanganda saqlash va keyboard yangilash."""
+    text = update.message.text
+    if "O'zbek" in text:
+        lang = 'uz'
+    else:
+        lang = 'ru'
 
-    lang = 'ru' if query.data == 'lang_ru' else 'uz'
-    user_id = query.from_user.id
-
+    user_id = update.effective_user.id
     await set_user_lang(user_id, lang)
 
     keyboard = await get_keyboard(user_id, lang)
-    await query.message.reply_text(
+    await update.message.reply_text(
         t(lang, 'lang_changed'),
         reply_markup=keyboard
     )
@@ -247,9 +246,9 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CallbackQueryHandler(language_callback, pattern="^lang_"))
     app.add_handler(MessageHandler(filters.Regex("^(Mening buyurtmalarim|Мои заказы)$"), my_orders))
-    app.add_handler(MessageHandler(filters.Regex("(Русский тил|O'zbek tili)"), change_language))
+    app.add_handler(MessageHandler(filters.Regex("(Tilni o'zgartirish|Изменить язык)"), change_language))
+    app.add_handler(MessageHandler(filters.Regex("^🇺🇿 O'zbek tili$|^🇷🇺 Русский язык$"), set_language))
     app.add_handler(MessageHandler(filters.Regex("^(Chat|Чат)$"), chat_support))
     # Admin reply'larini qo'lga olish
     app.add_handler(MessageHandler(filters.REPLY & filters.TEXT & ~filters.COMMAND, admin_reply))
