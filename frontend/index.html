@@ -31,9 +31,9 @@
         <div class="search-row">
             <div class="search-input-wrap">
                 <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="search-input" placeholder="Mahsulotlarni qidirish" autocomplete="off">
+                <input type="text" id="search-input" data-i18n="search_placeholder" placeholder="Mahsulotlarni qidirish" autocomplete="off">
             </div>
-            <button class="search-btn" onclick="runSearch()">Qidirish</button>
+            <button class="search-btn" onclick="runSearch()" data-i18n="search_btn">Qidirish</button>
         </div>
         <button class="address-bar" id="address-bar" onclick="showMap()">
             <svg class="addr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
@@ -46,14 +46,14 @@
     <section id="categories-view">
         <h2 class="section-title" id="categories-title">Boshqalar</h2>
         <div class="categories-grid" id="categories-grid">
-            <div class="loading">Yuklanmoqda...</div>
+            <div class="loading" data-i18n="loading">Yuklanmoqda...</div>
         </div>
     </section>
 
     <!-- Products view (shown after selecting category) -->
     <section id="products-view" style="display: none;">
         <div class="products-header">
-            <button class="back-btn" onclick="backToCategories()">← Orqaga</button>
+            <button class="back-btn" onclick="backToCategories()">← <span data-i18n="back_btn">Orqaga</span></button>
             <h2 class="section-title" id="products-title">Mahsulotlar</h2>
         </div>
         <div class="products-grid" id="products-container">
@@ -197,19 +197,19 @@
     <div class="modal-overlay" id="cart-modal" style="display: none;">
         <div class="modal">
             <div class="modal-header">
-                <h2>🛒 Savat</h2>
+                <h2>🛒 <span data-i18n="cart_title">Savat</span></h2>
                 <button class="close-btn" onclick="hideCart()">✕</button>
             </div>
             <div class="modal-body" id="cart-items"></div>
             <div class="cart-summary">
                 <div class="cart-total-row">
-                    <span>Jami:</span>
+                    <span data-i18n="total">Jami:</span>
                     <strong id="cart-modal-total">0 UZS</strong>
                 </div>
                 <div id="min-order-warning" class="warning" style="display: none;">
-                    Minimal buyurtma: <span id="min-amount"></span> UZS
+                    <span data-i18n="min_order">Minimal buyurtma:</span> <span id="min-amount"></span> UZS
                 </div>
-                <button class="btn-primary" id="checkout-btn" onclick="showCheckout()">
+                <button class="btn-primary" id="checkout-btn" onclick="showCheckout()" data-i18n="place_order">
                     Buyurtma berish
                 </button>
             </div>
@@ -220,23 +220,23 @@
     <div class="modal-overlay" id="checkout-modal" style="display: none;">
         <div class="modal">
             <div class="modal-header">
-                <h2>📦 Buyurtma</h2>
+                <h2>📦 <span data-i18n="order_title">Buyurtma</span></h2>
                 <button class="close-btn" onclick="hideCheckout()">✕</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>📍 Manzil</label>
-                    <div class="selected-address" id="checkout-address">Manzil tanlanmagan</div>
-                    <button class="btn-secondary" onclick="showMap()">
+                    <label>📍 <span data-i18n="address_label">Manzil</span></label>
+                    <div class="selected-address" id="checkout-address" data-i18n="address_not_selected">Manzil tanlanmagan</div>
+                    <button class="btn-secondary" onclick="showMap()" data-i18n="select_from_map">
                         Xaritadan tanlash
                     </button>
                 </div>
                 <div class="form-group">
-                    <label>💬 Izoh (ixtiyoriy)</label>
-                    <textarea id="comment-input" placeholder="Qo'shimcha izoh..." rows="2"></textarea>
+                    <label>💬 <span data-i18n="comment_label">Izoh (ixtiyoriy)</span></label>
+                    <textarea id="comment-input" data-i18n="comment_placeholder" placeholder="Qo'shimcha izoh..." rows="2"></textarea>
                 </div>
                 <div class="order-summary" id="order-summary"></div>
-                <button class="btn-primary btn-order" id="submit-order-btn" onclick="submitOrder()">
+                <button class="btn-primary btn-order" id="submit-order-btn" onclick="submitOrder()" data-i18n="confirm_order">
                     ✅ Buyurtmani tasdiqlash
                 </button>
             </div>
@@ -247,9 +247,9 @@
     <div class="modal-overlay" id="success-modal" style="display: none;">
         <div class="modal modal-success">
             <div class="success-icon">✅</div>
-            <h2>Buyurtma qabul qilindi!</h2>
-            <p>Buyurtmangiz tez orada tayyorlanadi.</p>
-            <button class="btn-primary" onclick="closeApp()">Yopish</button>
+            <h2 data-i18n="order_success_title">Buyurtma qabul qilindi!</h2>
+            <p data-i18n="order_success_text">Buyurtmangiz tez orada tayyorlanadi.</p>
+            <button class="btn-primary" onclick="closeApp()" data-i18n="close">Yopish</button>
         </div>
     </div>
 

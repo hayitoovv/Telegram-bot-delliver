@@ -15,6 +15,85 @@ document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.t
 const API_BASE = window.APP_CONFIG?.API_BASE || window.location.origin;
 const MIN_ORDER_AMOUNT = window.APP_CONFIG?.MIN_ORDER_AMOUNT || 40000;
 
+// Language
+const urlParams = new URLSearchParams(window.location.search);
+const LANG = urlParams.get('lang') || 'uz';
+
+const UI_TEXTS = {
+    uz: {
+        search_placeholder: "Mahsulotlarni qidirish",
+        search_btn: "Qidirish",
+        no_categories: "Kategoriyalar yo'q",
+        categories_error: "Kategoriyalar yuklanmadi",
+        no_products: "Mahsulotlar topilmadi",
+        products_error: "Mahsulotlar yuklanmadi",
+        loading: "Yuklanmoqda...",
+        add_btn: "+ Qo'shish",
+        cart_empty: "Savat bo'sh",
+        total: "Jami:",
+        address_not_selected: "Manzil tanlanmagan",
+        address_detecting: "Manzil aniqlanmoqda...",
+        select_address: "Iltimos, manzilingizni tanlang",
+        sending: "Yuborilmoqda...",
+        confirm_order: "✅ Buyurtmani tasdiqlash",
+        error_occurred: "Xatolik yuz berdi",
+        min_order: "Minimal buyurtma:",
+        no_messages: "Hali xabar yo'q",
+        chat_error: "Xabar yuborilmadi, qaytadan urinib ko'ring",
+        phone_error: "Telefon raqami noto'g'ri",
+        register_success: "Tabriklaymiz muvaffaqiyatli tizimga kirdingiz!",
+        comment_placeholder: "Izoh qoldiring...",
+        order_success_title: "Buyurtmangiz qabul qilindi!",
+        order_success_text: "Tez orada siz bilan bog'lanamiz",
+        close: "Yopish",
+        back_btn: "Orqaga",
+        cart_title: "Savat",
+        place_order: "Buyurtma berish",
+        order_title: "Buyurtma",
+        address_label: "Manzil",
+        select_from_map: "Xaritadan tanlash",
+        comment_label: "Izoh (ixtiyoriy)",
+    },
+    ru: {
+        search_placeholder: "Поиск продуктов",
+        search_btn: "Поиск",
+        no_categories: "Нет категорий",
+        categories_error: "Не удалось загрузить категории",
+        no_products: "Продукты не найдены",
+        products_error: "Не удалось загрузить продукты",
+        loading: "Загрузка...",
+        add_btn: "+ Добавить",
+        cart_empty: "Корзина пуста",
+        total: "Итого:",
+        address_not_selected: "Адрес не выбран",
+        address_detecting: "Определение адреса...",
+        select_address: "Пожалуйста, выберите адрес",
+        sending: "Отправка...",
+        confirm_order: "✅ Подтвердить заказ",
+        error_occurred: "Произошла ошибка",
+        min_order: "Минимальный заказ:",
+        no_messages: "Пока нет сообщений",
+        chat_error: "Сообщение не отправлено, попробуйте снова",
+        phone_error: "Неверный номер телефона",
+        register_success: "Поздравляем, вы успешно вошли в систему!",
+        comment_placeholder: "Оставьте комментарий...",
+        order_success_title: "Ваш заказ принят!",
+        order_success_text: "Мы скоро свяжемся с вами",
+        close: "Закрыть",
+        back_btn: "Назад",
+        cart_title: "Корзина",
+        place_order: "Оформить заказ",
+        order_title: "Заказ",
+        address_label: "Адрес",
+        select_from_map: "Выбрать на карте",
+        comment_label: "Комментарий (необязательно)",
+    },
+};
+
+function txt(key) {
+    return (UI_TEXTS[LANG] || UI_TEXTS['uz'])[key] || UI_TEXTS['uz'][key] || key;
+}
+
 // State
 let categories = [];
 let products = [];
@@ -84,7 +163,8 @@ function getInitData() {
 }
 
 async function apiGet(endpoint) {
-    const res = await fetch(`${API_BASE}/api/${endpoint}`, { headers: COMMON_HEADERS });
+    const sep = endpoint.includes('?') ? '&' : '?';
+    const res = await fetch(`${API_BASE}/api/${endpoint}${sep}lang=${LANG}`, { headers: COMMON_HEADERS });
     if (!res.ok) throw new Error(`API xato: ${res.status}`);
     return res.json();
 }
@@ -114,7 +194,7 @@ async function loadCategories() {
     } catch (e) {
         console.error('Kategoriyalar yuklanmadi:', e);
         document.getElementById('categories-grid').innerHTML =
-            '<div class="empty-state">Kategoriyalar yuklanmadi</div>';
+            `<div class="empty-state">${txt('categories_error')}</div>`;
     }
 }
 
@@ -129,7 +209,7 @@ async function loadProducts(categoryId) {
     } catch (e) {
         console.error('Mahsulotlar yuklanmadi:', e);
         document.getElementById('products-container').innerHTML =
-            '<div class="empty-state">Mahsulotlar yuklanmadi</div>';
+            `<div class="empty-state">${txt('products_error')}</div>`;
     }
 }
 
@@ -141,7 +221,7 @@ function renderCategoriesGrid() {
     const container = document.getElementById('categories-grid');
 
     if (!categories.length) {
-        container.innerHTML = '<div class="empty-state">Kategoriyalar yo\'q</div>';
+        container.innerHTML = `<div class="empty-state">${txt('no_categories')}</div>`;
         return;
     }
 
@@ -166,7 +246,7 @@ function renderProducts() {
         : products;
 
     if (!list.length) {
-        container.innerHTML = '<div class="empty-state">Mahsulotlar topilmadi</div>';
+        container.innerHTML = `<div class="empty-state">${txt('no_products')}</div>`;
         return;
     }
 
@@ -185,7 +265,7 @@ function renderProducts() {
                 <div class="product-price">${formatPrice(product.price)} UZS</div>
                 <div class="product-actions">
                     ${qty === 0
-                        ? `<button class="btn-add" onclick="addToCart(${product.id})">+ Qo'shish</button>`
+                        ? `<button class="btn-add" onclick="addToCart(${product.id})">${txt('add_btn')}</button>`
                         : `<div class="quantity-control">
                             <button class="qty-btn" onclick="changeQty(${product.id}, -1)">−</button>
                             <span class="qty-value">${qty}</span>
@@ -205,7 +285,7 @@ function renderCart() {
     const items = Object.values(cart);
 
     if (items.length === 0) {
-        container.innerHTML = '<div class="empty-state">Savat bo\'sh</div>';
+        container.innerHTML = `<div class="empty-state">${txt('cart_empty')}</div>`;
         return;
     }
 
@@ -243,13 +323,13 @@ function renderOrderSummary() {
     });
     html += `
     <div class="order-summary-total">
-        <span>Jami:</span>
+        <span>${txt('total')}</span>
         <span>${formatPrice(total)} UZS</span>
     </div>`;
     container.innerHTML = html;
 
     document.getElementById('checkout-address').textContent =
-        selectedAddress ? selectedAddress.label : 'Manzil tanlanmagan';
+        selectedAddress ? selectedAddress.label : txt('address_not_selected');
 }
 
 // ============================================
@@ -263,7 +343,7 @@ function openCategory(id, name) {
     document.getElementById('categories-view').style.display = 'none';
     document.getElementById('products-view').style.display = 'block';
     document.getElementById('products-title').textContent = name;
-    document.getElementById('products-container').innerHTML = '<div class="loading">Yuklanmoqda...</div>';
+    document.getElementById('products-container').innerHTML = `<div class="loading">${txt('loading')}</div>`;
     loadProducts(id);
 }
 
@@ -421,7 +501,7 @@ async function submitPhone() {
     const wrap = document.getElementById('phone-wrap');
 
     if (raw.length !== 9) {
-        errEl.textContent = "Telefon raqami noto'g'ri";
+        errEl.textContent = txt('phone_error');
         errEl.style.display = 'block';
         wrap.classList.add('error');
         tg.HapticFeedback?.notificationOccurred('error');
@@ -438,7 +518,7 @@ async function submitPhone() {
 
     setUserPhone(fullPhone);
     hideRegister();
-    showToast('Tabriklaymiz muvaffaqiyatli tizimga kirdingiz!');
+    showToast(txt('register_success'));
     setTimeout(showChatModal, 700);
     tg.HapticFeedback?.notificationOccurred('success');
 }
@@ -476,7 +556,7 @@ function renderChatMessages() {
     const body = document.getElementById('chat-body');
     const msgs = getChatMessages();
     if (!msgs.length) {
-        body.innerHTML = '<div class="chat-empty">Hali xabar yo\'q</div>';
+        body.innerHTML = `<div class="chat-empty">${txt('no_messages')}</div>`;
         return;
     }
     body.innerHTML = msgs.map(m =>
@@ -501,7 +581,7 @@ async function sendMessage() {
         await apiPost('chat/', { text });
     } catch (e) {
         console.error('Chat xato:', e);
-        showToast('Xabar yuborilmadi, qaytadan urinib ko\'ring');
+        showToast(txt('chat_error'));
     }
 }
 
@@ -666,7 +746,7 @@ function setPending(lat, lng, label) {
 
 function scheduleReverse(lat, lng) {
     const labelEl = document.getElementById('map-selected-label');
-    labelEl.textContent = 'Manzil aniqlanmoqda...';
+    labelEl.textContent = txt('address_detecting');
     pendingAddress = { lat, lng, label: `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
 
     if (reverseTimer) clearTimeout(reverseTimer);
@@ -702,7 +782,7 @@ function confirmLocation() {
 
 async function submitOrder() {
     if (!selectedAddress) {
-        alert('Iltimos, manzilingizni tanlang');
+        alert(txt('select_address'));
         return;
     }
 
@@ -714,7 +794,7 @@ async function submitOrder() {
 
     const submitBtn = document.getElementById('submit-order-btn');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Yuborilmoqda...';
+    submitBtn.textContent = txt('sending');
 
     try {
         await apiPost('order/', {
@@ -732,11 +812,11 @@ async function submitOrder() {
         document.getElementById('success-modal').style.display = 'flex';
         tg.HapticFeedback?.notificationOccurred('success');
     } catch (e) {
-        alert(e.message || 'Xatolik yuz berdi');
+        alert(e.message || txt('error_occurred'));
         tg.HapticFeedback?.notificationOccurred('error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = '✅ Buyurtmani tasdiqlash';
+        submitBtn.textContent = txt('confirm_order');
     }
 }
 
@@ -776,7 +856,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // Init
 // ============================================
 
+function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const text = txt(key);
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.placeholder = text;
+        } else {
+            el.textContent = text;
+        }
+    });
+}
+
 async function init() {
+    applyTranslations();
     try {
         await apiPost('auth/', {});
     } catch (e) {

@@ -7,6 +7,11 @@ class CategoryListView(generics.ListAPIView):
     serializer_class = CategorySerializer
     queryset = Category.objects.filter(is_active=True)
 
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['lang'] = self.request.query_params.get('lang', 'uz')
+        return ctx
+
 
 class ProductListView(generics.ListAPIView):
     serializer_class = ProductSerializer
@@ -17,3 +22,8 @@ class ProductListView(generics.ListAPIView):
         if category_id:
             queryset = queryset.filter(category_id=category_id)
         return queryset
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['lang'] = self.request.query_params.get('lang', 'uz')
+        return ctx

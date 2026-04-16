@@ -6,7 +6,7 @@ from .models import Category, Product
 class ProductInline(admin.TabularInline):
     model = Product
     extra = 1
-    fields = ['name', 'price', 'image', 'is_active']
+    fields = ['name', 'name_ru', 'price', 'image', 'is_active']
     show_change_link = True
 
 
@@ -24,7 +24,7 @@ class CategoryAdmin(admin.ModelAdmin):
     actions = ['activate', 'deactivate']
 
     fieldsets = (
-        (None, {'fields': ('name', 'image', 'is_active', 'order')}),
+        (None, {'fields': ('name', 'name_ru', 'image', 'is_active', 'order')}),
     )
 
     def thumb(self, obj):
@@ -65,7 +65,7 @@ class ProductAdmin(admin.ModelAdmin):
     actions = ['activate', 'deactivate']
 
     fieldsets = (
-        ('Asosiy', {'fields': ('category', 'name', 'description')}),
+        ('Asosiy', {'fields': ('category', 'name', 'name_ru', 'description', 'description_ru')}),
         ('Narx va rasm', {'fields': ('price', 'image')}),
         ('Holat', {'fields': ('is_active',)}),
     )

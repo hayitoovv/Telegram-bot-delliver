@@ -106,8 +106,10 @@ def t(lang: str, key: str, **kwargs) -> str:
 
 async def get_keyboard(user_id: int, lang: str):
     """Til ga qarab keyboard yaratish."""
+    sep = '&' if '?' in MINI_APP_URL else '?'
+    mini_url = f"{MINI_APP_URL}{sep}lang={lang}"
     keyboard = [
-        [KeyboardButton(t(lang, 'menu'), web_app=WebAppInfo(url=MINI_APP_URL))],
+        [KeyboardButton(t(lang, 'menu'), web_app=WebAppInfo(url=mini_url))],
         [KeyboardButton(t(lang, 'change_lang')), KeyboardButton(t(lang, 'chat'))],
         [KeyboardButton(t(lang, 'my_orders'))],
     ]
