@@ -261,24 +261,34 @@ function renderAllCategoryProducts() {
                 ? `<img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">`
                 : `<div class="product-image no-image">🍽️</div>`;
 
-            html += `
-            <div class="product-hcard" onclick="openProductDetail(${product.id})">
-                ${imageHtml}
-                <div class="product-info">
-                    <div class="product-name">${product.name}</div>
-                    <div class="product-price-row">
-                        <div class="product-price">${formatPrice(product.price)} UZS</div>
-                        ${qty === 0
-                            ? `<button class="btn-add-small" onclick="event.stopPropagation(); openProductDetail(${product.id})">+</button>`
-                            : `<div class="quantity-control" onclick="event.stopPropagation()">
-                                <button class="qty-btn" onclick="changeQty(${product.id}, -1)">−</button>
-                                <span class="qty-value">${qty}</span>
-                                <button class="qty-btn" onclick="changeQty(${product.id}, 1)">+</button>
-                               </div>`
-                        }
+            if (qty > 0) {
+                html += `
+                <div class="product-hcard in-cart" onclick="openProductDetail(${product.id})">
+                    ${imageHtml}
+                    <div class="product-info">
+                        <div class="product-name">${product.name}</div>
                     </div>
-                </div>
-            </div>`;
+                    <div class="hcard-cart-row" onclick="event.stopPropagation()">
+                        <div class="hcard-qty-control">
+                            <button class="hcard-qty-btn" onclick="changeQty(${product.id}, -1)">−</button>
+                            <span class="hcard-qty-val">${qty}</span>
+                            <button class="hcard-qty-btn hcard-plus" onclick="changeQty(${product.id}, 1)">+</button>
+                        </div>
+                        <div class="hcard-total">${formatPrice(product.price * qty)} UZS</div>
+                    </div>
+                </div>`;
+            } else {
+                html += `
+                <div class="product-hcard" onclick="openProductDetail(${product.id})">
+                    ${imageHtml}
+                    <div class="product-info">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-price-row">
+                            <div class="product-price">${formatPrice(product.price)} UZS</div>
+                        </div>
+                    </div>
+                </div>`;
+            }
         });
 
         html += `</div></div>`;
@@ -480,6 +490,9 @@ function openProductDetail(productId) {
 
     pdQty = cart[productId]?.quantity || 1;
 
+    // Find category name
+    const cat = categories.find(c => c.id === pdProduct.category);
+    document.getElementById('pd-cat-name').textContent = cat ? cat.name : '';
     document.getElementById('pd-image').src = pdProduct.image || '';
     document.getElementById('pd-name').textContent = pdProduct.name;
     document.getElementById('pd-price').textContent = formatPrice(pdProduct.price) + ' UZS';
