@@ -6,31 +6,85 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// Telegram tema ranglarini qo'llash
 document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#ffffff');
 document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#000000');
 document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#999999');
-document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#3390ec');
 document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#ffffff');
-document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f0f0f0');
+document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f2f2f7');
 
-// Konfiguratsiya
-const API_BASE = window.APP_CONFIG?.API_BASE || 'http://87.192.226.203';
+const API_BASE = window.APP_CONFIG?.API_BASE || window.location.origin;
 const MIN_ORDER_AMOUNT = window.APP_CONFIG?.MIN_ORDER_AMOUNT || 40000;
 
 // State
 let categories = [];
 let products = [];
 let cart = {};
-let selectedCategory = 'all';
-let userLocation = null;
+let selectedCategory = null;
+let selectedAddress = null; // { lat, lng, label }
+let searchQuery = '';
+
+// Map state
+let map = null;
+let mapMarker = null;
+let pendingAddress = null; // { lat, lng, label } while picking
+let reverseTimer = null;
 
 // ============================================
 // API
 // ============================================
 
+const COMMON_HEADERS = {};
+
+function getOrCreateTestId() {
+    let id = sessionStorage.getItem('test_tg_id');
+    if (!id) {
+        id = String(900000000 + Math.floor(Math.random() * 99999999));
+        sessionStorage.setItem('test_tg_id', id);
+    }
+    return parseInt(id, 10);
+}
+
+function readHashInitData() {
+    try {
+        const hash = window.location.hash.substring(1);
+        if (!hash) return '';
+        const params = new URLSearchParams(hash);
+        const data = params.get('tgWebAppData');
+        return data ? decodeURIComponent(data) : '';
+    } catch {
+        return '';
+    }
+}
+
+function getInitData() {
+    if (tg.initData && tg.initData.length > 0) return tg.initData;
+
+    // Try reading from URL hash (Telegram appends data even if SDK doesn't expose it)
+    const hashData = readHashInitData();
+    if (hashData) return hashData;
+
+    const u = tg.initDataUnsafe?.user;
+    if (u && u.id) {
+        return JSON.stringify({
+            id: u.id,
+            first_name: u.first_name || '',
+            last_name: u.last_name || '',
+            username: u.username || '',
+        });
+    }
+
+    // Dev fallback: unique per browser tab so testing isn't all "Guest"
+    const testId = getOrCreateTestId();
+    return JSON.stringify({
+        id: testId,
+        first_name: `Test ${testId.toString().slice(-4)}`,
+        last_name: '',
+        username: '',
+    });
+}
+
 async function apiGet(endpoint) {
-    const res = await fetch(`${API_BASE}/api/${endpoint}`);
+    const res = await fetch(`${API_BASE}/api/${endpoint}`, { headers: COMMON_HEADERS });
     if (!res.ok) throw new Error(`API xato: ${res.status}`);
     return res.json();
 }
@@ -38,8 +92,8 @@ async function apiGet(endpoint) {
 async function apiPost(endpoint, data) {
     const res = await fetch(`${API_BASE}/api/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, initData: tg.initData }),
+        headers: { 'Content-Type': 'application/json', ...COMMON_HEADERS },
+        body: JSON.stringify({ ...data, initData: getInitData() }),
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -49,22 +103,24 @@ async function apiPost(endpoint, data) {
 }
 
 // ============================================
-// Ma'lumotlarni yuklash
+// Load data
 // ============================================
 
 async function loadCategories() {
     try {
         const data = await apiGet('categories/');
         categories = data.results || data;
-        renderCategories();
+        renderCategoriesGrid();
     } catch (e) {
         console.error('Kategoriyalar yuklanmadi:', e);
+        document.getElementById('categories-grid').innerHTML =
+            '<div class="empty-state">Kategoriyalar yuklanmadi</div>';
     }
 }
 
 async function loadProducts(categoryId) {
     try {
-        const endpoint = categoryId && categoryId !== 'all'
+        const endpoint = categoryId
             ? `products/?category_id=${categoryId}`
             : 'products/';
         const data = await apiGet(endpoint);
@@ -81,29 +137,41 @@ async function loadProducts(categoryId) {
 // Render
 // ============================================
 
-function renderCategories() {
-    const container = document.getElementById('categories-container');
-    let html = `<button class="category-btn ${selectedCategory === 'all' ? 'active' : ''}"
-                        data-id="all" onclick="selectCategory('all')">Barchasi</button>`;
+function renderCategoriesGrid() {
+    const container = document.getElementById('categories-grid');
 
+    if (!categories.length) {
+        container.innerHTML = '<div class="empty-state">Kategoriyalar yo\'q</div>';
+        return;
+    }
+
+    let html = '';
     categories.forEach(cat => {
-        html += `<button class="category-btn ${selectedCategory == cat.id ? 'active' : ''}"
-                         data-id="${cat.id}" onclick="selectCategory(${cat.id})">${cat.name}</button>`;
+        const img = cat.image
+            ? `<img class="category-card-image" src="${cat.image}" alt="${cat.name}" loading="lazy">`
+            : `<div class="category-card-image no-image">🍽️</div>`;
+        html += `
+        <div class="category-card" onclick="openCategory(${cat.id}, '${escapeAttr(cat.name)}')">
+            ${img}
+            <div class="category-card-name">${cat.name}</div>
+        </div>`;
     });
-
     container.innerHTML = html;
 }
 
 function renderProducts() {
     const container = document.getElementById('products-container');
+    const list = searchQuery
+        ? products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : products;
 
-    if (products.length === 0) {
+    if (!list.length) {
         container.innerHTML = '<div class="empty-state">Mahsulotlar topilmadi</div>';
         return;
     }
 
     let html = '';
-    products.forEach(product => {
+    list.forEach(product => {
         const qty = cart[product.id]?.quantity || 0;
         const imageHtml = product.image
             ? `<img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">`
@@ -157,7 +225,6 @@ function renderCart() {
             <div class="cart-item-subtotal">${formatPrice(item.price * item.quantity)} UZS</div>
         </div>`;
     });
-
     container.innerHTML = html;
 }
 
@@ -174,18 +241,58 @@ function renderOrderSummary() {
             <span>${formatPrice(item.price * item.quantity)} UZS</span>
         </div>`;
     });
-
     html += `
     <div class="order-summary-total">
         <span>Jami:</span>
         <span>${formatPrice(total)} UZS</span>
     </div>`;
-
     container.innerHTML = html;
+
+    document.getElementById('checkout-address').textContent =
+        selectedAddress ? selectedAddress.label : 'Manzil tanlanmagan';
 }
 
 // ============================================
-// Savat
+// Navigation
+// ============================================
+
+function openCategory(id, name) {
+    selectedCategory = id;
+    searchQuery = '';
+    document.getElementById('search-input').value = '';
+    document.getElementById('categories-view').style.display = 'none';
+    document.getElementById('products-view').style.display = 'block';
+    document.getElementById('products-title').textContent = name;
+    document.getElementById('products-container').innerHTML = '<div class="loading">Yuklanmoqda...</div>';
+    loadProducts(id);
+}
+
+function backToCategories() {
+    selectedCategory = null;
+    searchQuery = '';
+    document.getElementById('search-input').value = '';
+    document.getElementById('products-view').style.display = 'none';
+    document.getElementById('categories-view').style.display = 'block';
+}
+
+function runSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    searchQuery = q;
+    if (!q) return;
+
+    // Open products view showing matches across all categories
+    if (document.getElementById('products-view').style.display === 'none') {
+        document.getElementById('categories-view').style.display = 'none';
+        document.getElementById('products-view').style.display = 'block';
+        document.getElementById('products-title').textContent = `"${q}"`;
+        loadProducts(null).then(renderProducts);
+    } else {
+        renderProducts();
+    }
+}
+
+// ============================================
+// Cart
 // ============================================
 
 function addToCart(productId) {
@@ -195,28 +302,25 @@ function addToCart(productId) {
     cart[productId] = {
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: Number(product.price),
         quantity: 1,
     };
 
     updateCartUI();
     renderProducts();
-    tg.HapticFeedback.impactOccurred('light');
+    tg.HapticFeedback?.impactOccurred('light');
 }
 
 function changeQty(productId, delta) {
     if (!cart[productId]) return;
 
     cart[productId].quantity += delta;
-
-    if (cart[productId].quantity <= 0) {
-        delete cart[productId];
-    }
+    if (cart[productId].quantity <= 0) delete cart[productId];
 
     updateCartUI();
     renderProducts();
     renderCart();
-    tg.HapticFeedback.impactOccurred('light');
+    tg.HapticFeedback?.impactOccurred('light');
 }
 
 function getCartTotal() {
@@ -240,10 +344,8 @@ function updateCartUI() {
         fab.style.display = 'none';
     }
 
-    // Modal ichidagi jami
     document.getElementById('cart-modal-total').textContent = formatPrice(total) + ' UZS';
 
-    // Minimal summa tekshirish
     const warning = document.getElementById('min-order-warning');
     const checkoutBtn = document.getElementById('checkout-btn');
     if (total < MIN_ORDER_AMOUNT && count > 0) {
@@ -257,17 +359,177 @@ function updateCartUI() {
 }
 
 // ============================================
-// Kategoriya tanlash
+// Drawer & chat
 // ============================================
 
-function selectCategory(categoryId) {
-    selectedCategory = categoryId;
-    renderCategories();
-    loadProducts(categoryId);
+function showDrawer() {
+    document.getElementById('drawer').style.display = 'flex';
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function hideDrawer(event) {
+    if (event && event.target.id !== 'drawer') return;
+    document.getElementById('drawer').style.display = 'none';
 }
 
 // ============================================
-// Modallar
+// Phone registration + Chat
+// ============================================
+
+function currentTgId() {
+    return tg.initDataUnsafe?.user?.id || null;
+}
+
+function getUserPhone() {
+    try {
+        const data = JSON.parse(localStorage.getItem('user_data') || '{}');
+        const tgId = currentTgId();
+        if (tgId && data.tg_id === tgId) return data.phone || null;
+    } catch {}
+    return null;
+}
+
+function setUserPhone(phone) {
+    const tgId = currentTgId();
+    if (!tgId) return;
+    localStorage.setItem('user_data', JSON.stringify({ tg_id: tgId, phone }));
+}
+
+function openChat() {
+    if (getUserPhone()) {
+        showChatModal();
+    } else {
+        showRegister();
+    }
+}
+
+function showRegister() {
+    document.getElementById('register-modal').style.display = 'flex';
+    setTimeout(() => document.getElementById('phone-input').focus(), 200);
+}
+
+function hideRegister() {
+    document.getElementById('register-modal').style.display = 'none';
+    document.getElementById('phone-error').style.display = 'none';
+    document.getElementById('phone-wrap').classList.remove('error');
+}
+
+async function submitPhone() {
+    const input = document.getElementById('phone-input');
+    const raw = input.value.replace(/\D/g, '');
+    const errEl = document.getElementById('phone-error');
+    const wrap = document.getElementById('phone-wrap');
+
+    if (raw.length !== 9) {
+        errEl.textContent = "Telefon raqami noto'g'ri";
+        errEl.style.display = 'block';
+        wrap.classList.add('error');
+        tg.HapticFeedback?.notificationOccurred('error');
+        return;
+    }
+
+    const fullPhone = '+998' + raw;
+
+    try {
+        await apiPost('auth/', { phone: fullPhone });
+    } catch (e) {
+        console.error('Auth xato:', e);
+    }
+
+    setUserPhone(fullPhone);
+    hideRegister();
+    showToast('Tabriklaymiz muvaffaqiyatli tizimga kirdingiz!');
+    setTimeout(showChatModal, 700);
+    tg.HapticFeedback?.notificationOccurred('success');
+}
+
+function showToast(text) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-text').textContent = text;
+    toast.style.display = 'flex';
+    setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+
+function showChatModal() {
+    document.getElementById('chat-modal').style.display = 'flex';
+    renderChatMessages();
+    setTimeout(() => document.getElementById('chat-input').focus(), 200);
+}
+
+function hideChat() {
+    document.getElementById('chat-modal').style.display = 'none';
+}
+
+function getChatMessages() {
+    try {
+        return JSON.parse(localStorage.getItem('chat_messages') || '[]');
+    } catch {
+        return [];
+    }
+}
+
+function saveChatMessages(msgs) {
+    localStorage.setItem('chat_messages', JSON.stringify(msgs));
+}
+
+function renderChatMessages() {
+    const body = document.getElementById('chat-body');
+    const msgs = getChatMessages();
+    if (!msgs.length) {
+        body.innerHTML = '<div class="chat-empty">Hali xabar yo\'q</div>';
+        return;
+    }
+    body.innerHTML = msgs.map(m =>
+        `<div class="chat-msg ${m.from === 'me' ? 'me' : 'them'}">${escapeHtml(m.text)}</div>`
+    ).join('');
+    body.scrollTop = body.scrollHeight;
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const msgs = getChatMessages();
+    msgs.push({ from: 'me', text, at: Date.now() });
+    saveChatMessages(msgs);
+    input.value = '';
+    renderChatMessages();
+    tg.HapticFeedback?.impactOccurred('light');
+
+    try {
+        await apiPost('chat/', { text });
+    } catch (e) {
+        console.error('Chat xato:', e);
+        showToast('Xabar yuborilmadi, qaytadan urinib ko\'ring');
+    }
+}
+
+function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const chatIn = document.getElementById('chat-input');
+    if (chatIn) {
+        chatIn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    }
+    const phoneIn = document.getElementById('phone-input');
+    if (phoneIn) {
+        phoneIn.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 9);
+            document.getElementById('phone-error').style.display = 'none';
+            document.getElementById('phone-wrap').classList.remove('error');
+        });
+    }
+});
+
+// ============================================
+// Modals
 // ============================================
 
 function showCart() {
@@ -291,45 +553,160 @@ function hideCheckout() {
 }
 
 // ============================================
-// Lokatsiya
+// Map (Leaflet + OSM)
 // ============================================
 
-function sendLocation() {
-    if (!navigator.geolocation) {
-        alert('Geolokatsiya qo\'llab-quvvatlanmaydi');
+function showMap() {
+    document.getElementById('map-modal').style.display = 'flex';
+    setTimeout(initMap, 50);
+}
+
+function hideMap() {
+    document.getElementById('map-modal').style.display = 'none';
+}
+
+function initMap() {
+    const container = document.getElementById('map-container');
+    if (map) {
+        setTimeout(() => map.invalidateSize(), 50);
         return;
     }
 
+    const start = selectedAddress
+        ? [selectedAddress.lat, selectedAddress.lng]
+        : [41.3111, 69.2797]; // Tashkent default
+
+    map = L.map(container, { zoomControl: false, attributionControl: false }).setView(start, 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+        maxZoom: 20,
+        subdomains: 'abc',
+    }).addTo(map);
+
+    const greenIcon = L.divIcon({
+        className: 'custom-pin',
+        html: '<div class="pin-dot"></div>',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+    });
+
+    mapMarker = L.marker(start, { draggable: true, icon: greenIcon }).addTo(map);
+    mapMarker.on('drag', () => {
+        const ll = mapMarker.getLatLng();
+        scheduleReverse(ll.lat, ll.lng);
+    });
+    mapMarker.on('dragend', () => {
+        const ll = mapMarker.getLatLng();
+        map.panTo(ll);
+        scheduleReverse(ll.lat, ll.lng);
+    });
+    map.on('click', (e) => {
+        mapMarker.setLatLng(e.latlng);
+        scheduleReverse(e.latlng.lat, e.latlng.lng);
+    });
+    map.on('moveend', () => {
+        if (!mapMarker) return;
+        mapMarker.setLatLng(map.getCenter());
+        scheduleReverse(map.getCenter().lat, map.getCenter().lng);
+    });
+
+    // Custom zoom buttons
+    document.getElementById('map-zoom-in').onclick = () => map.zoomIn();
+    document.getElementById('map-zoom-out').onclick = () => map.zoomOut();
+    document.getElementById('map-locate').onclick = locateUser;
+
+    // Initial geolocate
+    locateUser();
+    scheduleReverse(start[0], start[1]);
+
+    // Search via Nominatim
+    const searchInput = document.getElementById('map-search-input');
+    searchInput.addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter') return;
+        const q = searchInput.value.trim();
+        if (!q) return;
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`,
+                { headers: { 'Accept': 'application/json' } }
+            );
+            const results = await res.json();
+            if (results.length) {
+                const { lat, lon, display_name } = results[0];
+                const ll = [parseFloat(lat), parseFloat(lon)];
+                map.setView(ll, 17);
+                mapMarker.setLatLng(ll);
+                setPending(parseFloat(lat), parseFloat(lon), display_name);
+            }
+        } catch (err) {
+            console.error('Qidirish xato:', err);
+        }
+    });
+
+    setTimeout(() => map.invalidateSize(), 100);
+}
+
+function locateUser() {
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            userLocation = {
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-            };
-            document.getElementById('address-input').value =
-                `📍 Lokatsiya yuborildi (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`;
-            tg.HapticFeedback.notificationOccurred('success');
+            const ll = [pos.coords.latitude, pos.coords.longitude];
+            map.setView(ll, 17);
+            mapMarker.setLatLng(ll);
+            scheduleReverse(ll[0], ll[1]);
         },
-        (err) => {
-            console.error('Lokatsiya olishda xato:', err);
-            alert('Lokatsiyani olishda xatolik yuz berdi');
-        }
+        (err) => console.warn('Geo xato:', err),
+        { enableHighAccuracy: true, timeout: 7000 }
     );
 }
 
+function setPending(lat, lng, label) {
+    pendingAddress = { lat, lng, label };
+    document.getElementById('map-selected-label').textContent = label;
+}
+
+function scheduleReverse(lat, lng) {
+    const labelEl = document.getElementById('map-selected-label');
+    labelEl.textContent = 'Manzil aniqlanmoqda...';
+    pendingAddress = { lat, lng, label: `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
+
+    if (reverseTimer) clearTimeout(reverseTimer);
+    reverseTimer = setTimeout(async () => {
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=uz`,
+                { headers: { 'Accept': 'application/json' } }
+            );
+            const data = await res.json();
+            if (data.display_name) setPending(lat, lng, data.display_name);
+        } catch (err) {
+            console.error('Reverse geocode xato:', err);
+        }
+    }, 400);
+}
+
+function confirmLocation() {
+    if (!pendingAddress) return;
+    selectedAddress = { ...pendingAddress };
+    const label = selectedAddress.label;
+    document.getElementById('address-text').textContent = label.length > 40
+        ? label.slice(0, 40) + '…'
+        : label;
+    document.getElementById('checkout-address').textContent = label;
+    hideMap();
+    tg.HapticFeedback?.notificationOccurred('success');
+}
+
 // ============================================
-// Buyurtma yuborish
+// Submit order
 // ============================================
 
 async function submitOrder() {
-    const address = document.getElementById('address-input').value.trim();
-    const comment = document.getElementById('comment-input').value.trim();
-
-    if (!address) {
-        alert('Iltimos, manzilingizni kiriting');
+    if (!selectedAddress) {
+        alert('Iltimos, manzilingizni tanlang');
         return;
     }
 
+    const comment = document.getElementById('comment-input').value.trim();
     const items = Object.values(cart).map(item => ({
         product_id: item.id,
         quantity: item.quantity,
@@ -342,23 +719,21 @@ async function submitOrder() {
     try {
         await apiPost('order/', {
             items,
-            address,
+            address: selectedAddress.label,
             comment,
-            latitude: userLocation?.latitude || null,
-            longitude: userLocation?.longitude || null,
+            latitude: selectedAddress.lat,
+            longitude: selectedAddress.lng,
         });
 
-        // Muvaffaqiyat
         hideCheckout();
         cart = {};
         updateCartUI();
         renderProducts();
         document.getElementById('success-modal').style.display = 'flex';
-        tg.HapticFeedback.notificationOccurred('success');
-
+        tg.HapticFeedback?.notificationOccurred('success');
     } catch (e) {
         alert(e.message || 'Xatolik yuz berdi');
-        tg.HapticFeedback.notificationOccurred('error');
+        tg.HapticFeedback?.notificationOccurred('error');
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = '✅ Buyurtmani tasdiqlash';
@@ -366,32 +741,48 @@ async function submitOrder() {
 }
 
 // ============================================
-// Yordamchi funksiyalar
+// Helpers
 // ============================================
 
 function formatPrice(price) {
-    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return Number(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function escapeAttr(s) {
+    return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
 function closeApp() {
     tg.close();
 }
 
+// Live search on type
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('search-input');
+    if (input) {
+        input.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            if (document.getElementById('products-view').style.display !== 'none') {
+                renderProducts();
+            }
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') runSearch();
+        });
+    }
+});
+
 // ============================================
-// Auth va boshlash
+// Init
 // ============================================
 
 async function init() {
-    // Foydalanuvchini autentifikatsiya qilish
     try {
         await apiPost('auth/', {});
     } catch (e) {
-        console.error('Auth xatosi:', e);
+        console.error('Auth xato:', e);
     }
-
-    // Ma'lumotlarni yuklash
-    await Promise.all([loadCategories(), loadProducts()]);
+    await loadCategories();
 }
 
-// Ilovani ishga tushirish
 init();
