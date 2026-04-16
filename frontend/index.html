@@ -42,23 +42,17 @@
         </button>
     </header>
 
-    <!-- Categories grid (landing view) -->
-    <section id="categories-view">
-        <h2 class="section-title" id="categories-title">Boshqalar</h2>
-        <div class="categories-grid" id="categories-grid">
-            <div class="loading" data-i18n="loading">Yuklanmoqda...</div>
-        </div>
+    <!-- Categories horizontal scroll -->
+    <section id="categories-section">
+        <div class="categories-scroll" id="categories-scroll"></div>
     </section>
 
-    <!-- Products view (shown after selecting category) -->
-    <section id="products-view" style="display: none;">
-        <div class="products-header">
-            <button class="back-btn" onclick="backToCategories()">← <span data-i18n="back_btn">Orqaga</span></button>
-            <h2 class="section-title" id="products-title">Mahsulotlar</h2>
+    <!-- Products below categories -->
+    <section id="products-section">
+        <div class="category-title-row">
+            <h2 id="products-title"></h2>
         </div>
-        <div class="products-grid" id="products-container">
-            <div class="loading">Yuklanmoqda...</div>
-        </div>
+        <div class="products-grid" id="products-container"></div>
     </section>
 
     <!-- Savat tugmasi -->

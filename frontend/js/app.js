@@ -190,10 +190,14 @@ async function loadCategories() {
     try {
         const data = await apiGet('categories/');
         categories = data.results || data;
-        renderCategoriesGrid();
+        renderCategoriesScroll();
+        // Birinchi kategoriyani avtomatik tanlash
+        if (categories.length && !selectedCategory) {
+            selectCategory(categories[0].id, categories[0].name);
+        }
     } catch (e) {
         console.error('Kategoriyalar yuklanmadi:', e);
-        document.getElementById('categories-grid').innerHTML =
+        document.getElementById('categories-scroll').innerHTML =
             `<div class="empty-state">${txt('categories_error')}</div>`;
     }
 }
@@ -217,8 +221,8 @@ async function loadProducts(categoryId) {
 // Render
 // ============================================
 
-function renderCategoriesGrid() {
-    const container = document.getElementById('categories-grid');
+function renderCategoriesScroll() {
+    const container = document.getElementById('categories-scroll');
 
     if (!categories.length) {
         container.innerHTML = `<div class="empty-state">${txt('no_categories')}</div>`;
@@ -227,13 +231,14 @@ function renderCategoriesGrid() {
 
     let html = '';
     categories.forEach(cat => {
+        const active = cat.id === selectedCategory ? 'active' : '';
         const img = cat.image
-            ? `<img class="category-card-image" src="${cat.image}" alt="${cat.name}" loading="lazy">`
-            : `<div class="category-card-image no-image">🍽️</div>`;
+            ? `<img class="category-chip-image" src="${cat.image}" alt="${cat.name}" loading="lazy">`
+            : `<div class="category-chip-image no-image">🍽️</div>`;
         html += `
-        <div class="category-card" onclick="openCategory(${cat.id}, '${escapeAttr(cat.name)}')">
+        <div class="category-chip ${active}" onclick="selectCategory(${cat.id}, '${escapeAttr(cat.name)}')">
             ${img}
-            <div class="category-card-name">${cat.name}</div>
+            <div class="category-chip-name">${cat.name}</div>
         </div>`;
     });
     container.innerHTML = html;
@@ -336,23 +341,14 @@ function renderOrderSummary() {
 // Navigation
 // ============================================
 
-function openCategory(id, name) {
+function selectCategory(id, name) {
     selectedCategory = id;
     searchQuery = '';
     document.getElementById('search-input').value = '';
-    document.getElementById('categories-view').style.display = 'none';
-    document.getElementById('products-view').style.display = 'block';
     document.getElementById('products-title').textContent = name;
     document.getElementById('products-container').innerHTML = `<div class="loading">${txt('loading')}</div>`;
+    renderCategoriesScroll();
     loadProducts(id);
-}
-
-function backToCategories() {
-    selectedCategory = null;
-    searchQuery = '';
-    document.getElementById('search-input').value = '';
-    document.getElementById('products-view').style.display = 'none';
-    document.getElementById('categories-view').style.display = 'block';
 }
 
 function runSearch() {
@@ -360,15 +356,10 @@ function runSearch() {
     searchQuery = q;
     if (!q) return;
 
-    // Open products view showing matches across all categories
-    if (document.getElementById('products-view').style.display === 'none') {
-        document.getElementById('categories-view').style.display = 'none';
-        document.getElementById('products-view').style.display = 'block';
-        document.getElementById('products-title').textContent = `"${q}"`;
-        loadProducts(null).then(renderProducts);
-    } else {
-        renderProducts();
-    }
+    selectedCategory = null;
+    renderCategoriesScroll();
+    document.getElementById('products-title').textContent = `"${q}"`;
+    loadProducts(null).then(renderProducts);
 }
 
 // ============================================
