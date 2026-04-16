@@ -641,15 +641,20 @@ body {
 .product-hcard .product-price-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     margin-top: 6px;
 }
 
 .product-hcard .product-price {
+    display: inline-block;
     font-size: 14px;
     font-weight: 700;
-    color: var(--brand-green-dark);
+    color: #1a1a1a;
     margin-bottom: 0;
+    padding: 6px 16px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 20px;
+    text-align: center;
 }
 
 .product-hcard .btn-add-small {
