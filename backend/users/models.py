@@ -7,6 +7,7 @@ class TelegramUser(models.Model):
     last_name = models.CharField(max_length=150, blank=True, default='', verbose_name="Familiya")
     username = models.CharField(max_length=150, blank=True, default='', verbose_name="Username")
     phone = models.CharField(max_length=20, blank=True, default='', verbose_name="Telefon")
+    language = models.CharField(max_length=2, choices=[('uz', "O'zbek"), ('ru', 'Русский')], default='uz', verbose_name="Til")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

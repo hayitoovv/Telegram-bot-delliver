@@ -55,6 +55,33 @@ class AuthView(APIView):
         })
 
 
+class LanguageView(APIView):
+    """Foydalanuvchi tilini o'zgartirish."""
+
+    def post(self, request):
+        user, err = _get_user_from_request(request)
+        if err:
+            return err
+
+        lang = request.data.get('language', '').strip()
+        if lang not in ('uz', 'ru'):
+            return Response({'error': 'Noto\'g\'ri til'}, status=400)
+
+        user.language = lang
+        user.save(update_fields=['language'])
+        return Response({'ok': True, 'language': lang})
+
+    def get(self, request):
+        telegram_id = request.query_params.get('telegram_id')
+        if not telegram_id:
+            return Response({'error': 'telegram_id kerak'}, status=400)
+        try:
+            user = TelegramUser.objects.get(telegram_id=telegram_id)
+            return Response({'language': user.language})
+        except TelegramUser.DoesNotExist:
+            return Response({'language': 'uz'})
+
+
 class ChatView(APIView):
     """Mini-app chat xabarini adminga yo'naltiradi."""
 
