@@ -583,28 +583,20 @@ function useAutoLocation() {
         return;
     }
     navigator.geolocation.getCurrentPosition(
-        async (pos) => {
+        (pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
-            let label = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-            try {
-                const res = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${LANG}`,
-                    { headers: { 'Accept': 'application/json' } }
-                );
-                const data = await res.json();
-                if (data.display_name) label = data.display_name;
-            } catch {}
-
-            selectedAddress = { lat, lng, label };
-            const shortLabel = label.length > 40 ? label.slice(0, 40) + '…' : label;
-            document.getElementById('address-text').textContent = shortLabel;
             hideAddressRequired();
-            if (pendingAfterAddress) {
-                const cb = pendingAfterAddress;
-                pendingAfterAddress = null;
-                cb();
-            }
+            showMap();
+            // Wait for map to init, then set position
+            setTimeout(() => {
+                if (map && mapMarker) {
+                    const ll = [lat, lng];
+                    map.setView(ll, 17);
+                    mapMarker.setLatLng(ll);
+                    scheduleReverse(lat, lng);
+                }
+            }, 300);
         },
         () => {
             pickAddressManually();
@@ -896,9 +888,9 @@ function initMap() {
         : [41.3111, 69.2797]; // Tashkent default
 
     map = L.map(container, { zoomControl: false, attributionControl: false }).setView(start, 16);
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 20,
-        subdomains: 'abc',
+        subdomains: 'abcd',
     }).addTo(map);
 
     const greenIcon = L.divIcon({
