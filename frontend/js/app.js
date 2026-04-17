@@ -864,12 +864,16 @@ function hideCheckout() {
 }
 
 // ============================================
-// Map (Leaflet + OSM)
+// Map (Yandex Maps)
 // ============================================
 
 function showMap() {
     document.getElementById('map-modal').style.display = 'flex';
-    setTimeout(initMap, 50);
+    if (window.ymaps) {
+        ymaps.ready(() => setTimeout(initMap, 50));
+    } else {
+        setTimeout(() => showMap(), 200);
+    }
 }
 
 function hideMap() {
@@ -879,7 +883,7 @@ function hideMap() {
 function initMap() {
     const container = document.getElementById('map-container');
     if (map) {
-        setTimeout(() => map.invalidateSize(), 50);
+        map.container.fitToViewport();
         return;
     }
 
@@ -887,83 +891,78 @@ function initMap() {
         ? [selectedAddress.lat, selectedAddress.lng]
         : [41.3111, 69.2797]; // Tashkent default
 
-    map = L.map(container, { zoomControl: false, attributionControl: false }).setView(start, 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20,
-        subdomains: 'abcd',
-    }).addTo(map);
+    map = new ymaps.Map(container, {
+        center: start,
+        zoom: 16,
+        controls: [],
+    }, { suppressMapOpenBlock: true });
 
-    const greenIcon = L.divIcon({
-        className: 'custom-pin',
-        html: '<div class="pin-dot"></div>',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+    mapMarker = new ymaps.Placemark(start, {}, {
+        preset: 'islands#greenCircleDotIcon',
+        draggable: true,
+    });
+    map.geoObjects.add(mapMarker);
+
+    mapMarker.events.add('dragend', () => {
+        const coords = mapMarker.geometry.getCoordinates();
+        map.panTo(coords);
+        scheduleReverse(coords[0], coords[1]);
     });
 
-    mapMarker = L.marker(start, { draggable: true, icon: greenIcon }).addTo(map);
-    mapMarker.on('drag', () => {
-        const ll = mapMarker.getLatLng();
-        scheduleReverse(ll.lat, ll.lng);
+    map.events.add('click', (e) => {
+        const coords = e.get('coords');
+        mapMarker.geometry.setCoordinates(coords);
+        scheduleReverse(coords[0], coords[1]);
     });
-    mapMarker.on('dragend', () => {
-        const ll = mapMarker.getLatLng();
-        map.panTo(ll);
-        scheduleReverse(ll.lat, ll.lng);
-    });
-    map.on('click', (e) => {
-        mapMarker.setLatLng(e.latlng);
-        scheduleReverse(e.latlng.lat, e.latlng.lng);
-    });
-    map.on('moveend', () => {
+
+    map.events.add('boundschange', () => {
         if (!mapMarker) return;
-        mapMarker.setLatLng(map.getCenter());
-        scheduleReverse(map.getCenter().lat, map.getCenter().lng);
+        const center = map.getCenter();
+        mapMarker.geometry.setCoordinates(center);
+        scheduleReverse(center[0], center[1]);
     });
 
     // Custom zoom buttons
-    document.getElementById('map-zoom-in').onclick = () => map.zoomIn();
-    document.getElementById('map-zoom-out').onclick = () => map.zoomOut();
+    document.getElementById('map-zoom-in').onclick = () => map.setZoom(map.getZoom() + 1, { duration: 200 });
+    document.getElementById('map-zoom-out').onclick = () => map.setZoom(map.getZoom() - 1, { duration: 200 });
     document.getElementById('map-locate').onclick = locateUser;
 
     // Initial geolocate
     locateUser();
     scheduleReverse(start[0], start[1]);
 
-    // Search via Nominatim
+    // Search via Yandex Geocoder
     const searchInput = document.getElementById('map-search-input');
     searchInput.addEventListener('keydown', async (e) => {
         if (e.key !== 'Enter') return;
         const q = searchInput.value.trim();
         if (!q) return;
         try {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`,
-                { headers: { 'Accept': 'application/json' } }
-            );
-            const results = await res.json();
-            if (results.length) {
-                const { lat, lon, display_name } = results[0];
-                const ll = [parseFloat(lat), parseFloat(lon)];
-                map.setView(ll, 17);
-                mapMarker.setLatLng(ll);
-                setPending(parseFloat(lat), parseFloat(lon), display_name);
+            const result = await ymaps.geocode(q, { results: 1 });
+            const firstGeoObject = result.geoObjects.get(0);
+            if (firstGeoObject) {
+                const coords = firstGeoObject.geometry.getCoordinates();
+                const label = firstGeoObject.getAddressLine();
+                map.setCenter(coords, 17);
+                mapMarker.geometry.setCoordinates(coords);
+                setPending(coords[0], coords[1], label);
             }
         } catch (err) {
             console.error('Qidirish xato:', err);
         }
     });
-
-    setTimeout(() => map.invalidateSize(), 100);
 }
 
 function locateUser() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            const ll = [pos.coords.latitude, pos.coords.longitude];
-            map.setView(ll, 17);
-            mapMarker.setLatLng(ll);
-            scheduleReverse(ll[0], ll[1]);
+            const coords = [pos.coords.latitude, pos.coords.longitude];
+            if (map) {
+                map.setCenter(coords, 17);
+                mapMarker.geometry.setCoordinates(coords);
+                scheduleReverse(coords[0], coords[1]);
+            }
         },
         (err) => console.warn('Geo xato:', err),
         { enableHighAccuracy: true, timeout: 7000 }
@@ -983,12 +982,12 @@ function scheduleReverse(lat, lng) {
     if (reverseTimer) clearTimeout(reverseTimer);
     reverseTimer = setTimeout(async () => {
         try {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=uz`,
-                { headers: { 'Accept': 'application/json' } }
-            );
-            const data = await res.json();
-            if (data.display_name) setPending(lat, lng, data.display_name);
+            const result = await ymaps.geocode([lat, lng], { results: 1 });
+            const firstGeoObject = result.geoObjects.get(0);
+            if (firstGeoObject) {
+                const label = firstGeoObject.getAddressLine();
+                setPending(lat, lng, label);
+            }
         } catch (err) {
             console.error('Reverse geocode xato:', err);
         }
