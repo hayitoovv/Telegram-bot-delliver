@@ -719,7 +719,7 @@ body {
 }
 
 .product-hcard .hcard-qty-btn:active { background: #f0f0f0; }
-.product-hcard .hcard-qty-btn.hcard-plus { color: #7C4DFF; }
+.product-hcard .hcard-qty-btn.hcard-plus { color: #4CAF50; }
 
 .product-hcard .hcard-qty-val {
     min-width: 24px;
@@ -859,7 +859,7 @@ body {
     left: 0;
     right: 0;
     padding: 14px 20px;
-    background: linear-gradient(135deg, #7C4DFF, #536DFE);
+    background: linear-gradient(135deg, #4CAF50, #4CAF50);
     color: #ffffff;
     display: flex;
     align-items: center;
@@ -902,7 +902,7 @@ body {
     padding: 14px 16px 0;
     font-size: 18px;
     font-weight: 700;
-    color: #7C4DFF;
+    color: #4CAF50;
 }
 
 .pd-drag-handle {
@@ -941,7 +941,7 @@ body {
 .pd-price {
     font-size: 18px;
     font-weight: 700;
-    color: #7C4DFF;
+    color: #4CAF50;
     margin-bottom: 10px;
 }
 
@@ -954,25 +954,31 @@ body {
 .pd-bottom {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
+    gap: 10px;
+    padding: 14px 14px;
     border-top: 1px solid #eee;
     background: #ffffff;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .pd-qty-control {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    background: #ffffff;
     flex-shrink: 0;
 }
 
 .pd-qty-btn {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px;
-    border-radius: 50% !important;
-    font-size: 22px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    font-size: 20px;
     font-weight: 400;
     line-height: 1;
     cursor: pointer;
@@ -987,65 +993,70 @@ body {
 .pd-qty-btn:active { transform: scale(0.92); }
 
 .pd-qty-minus {
-    background: transparent !important;
+    background: transparent;
     color: #333;
-    border: 1.5px solid #d0d0d0;
+    border: none;
 }
 
-.pd-qty-minus:active { background: #f5f5f5 !important; }
+.pd-qty-minus:active { background: #f5f5f5; }
 
 .pd-qty-plus {
-    background: #7C4DFF !important;
+    background: #4CAF50;
     color: #ffffff;
     border: none;
 }
 
-.pd-qty-plus:active { background: #5C35CC !important; }
+.pd-qty-plus:active { background: #388E3C; }
 
 .pd-qty-value {
     min-width: 20px;
     text-align: center;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: #1a1a1a;
 }
 
 .pd-add-btn {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 12px 16px;
-    border-radius: 12px !important;
-    background: transparent !important;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #ffffff;
     color: #1a1a1a;
-    border: 1px solid #d0d0d0;
+    border: 1px solid #ccc;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.15s, background 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pd-add-btn:active {
     transform: scale(0.97);
-    background: #f5f5f5 !important;
+    background: #f5f5f5;
 }
 
 .pd-cart-ic {
-    width: 20px;
-    height: 20px;
-    color: #7C4DFF;
+    width: 18px;
+    height: 18px;
+    color: #4CAF50;
+    flex-shrink: 0;
 }
 
 .pd-add-btn.go-to-cart {
     background: #ffffff;
-    color: #7C4DFF;
-    border: 1px solid #7C4DFF;
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
 }
 
 .pd-add-btn.go-to-cart .pd-cart-ic {
-    color: #7C4DFF;
+    color: #4CAF50;
 }
 
 /* Cart full page */
@@ -1130,7 +1141,7 @@ body {
 .cart-page-item-price {
     font-size: 14px;
     font-weight: 700;
-    color: #7C4DFF;
+    color: #4CAF50;
 }
 
 .cart-page-item-qty {
@@ -1157,7 +1168,7 @@ body {
 }
 
 .cart-page-item-qty .cpq-btn.cpq-plus {
-    background: #7C4DFF;
+    background: #4CAF50;
     color: #ffffff;
 }
 
@@ -1197,7 +1208,7 @@ body {
     padding: 14px;
     border: none;
     border-radius: 25px;
-    background: linear-gradient(135deg, #7C4DFF, #536DFE);
+    background: linear-gradient(135deg, #4CAF50, #4CAF50);
     color: #ffffff;
     font-size: 16px;
     font-weight: 700;
