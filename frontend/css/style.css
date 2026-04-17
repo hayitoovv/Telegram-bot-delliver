@@ -877,7 +877,11 @@ body {
     transform: scale(0.98);
 }
 
-.cart-bar-icon { font-size: 20px; }
+.cart-bar-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
 
 .cart-bar-total {
     font-size: 17px;
