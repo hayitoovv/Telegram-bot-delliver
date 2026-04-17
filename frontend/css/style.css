@@ -845,6 +845,98 @@ body {
     text-align: center;
 }
 
+/* Address required modal */
+#address-required-modal {
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+}
+
+.addr-prompt {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 28px 24px 24px;
+    width: 100%;
+    max-width: 360px;
+    position: relative;
+    text-align: center;
+    animation: scaleIn 0.25s ease;
+}
+
+.addr-prompt-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+}
+
+.addr-prompt-pin {
+    display: flex;
+    justify-content: center;
+    margin: 12px 0 16px;
+}
+
+.addr-prompt-pin svg {
+    width: 120px;
+    height: 120px;
+    color: #4CAF50;
+    filter: drop-shadow(0 10px 14px rgba(76, 175, 80, 0.35));
+}
+
+.addr-prompt-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+    line-height: 1.35;
+}
+
+.addr-prompt-desc {
+    font-size: 13px;
+    color: #888;
+    line-height: 1.5;
+    margin-bottom: 22px;
+}
+
+.addr-prompt-btn-primary, .addr-prompt-btn-secondary {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.15s, transform 0.15s;
+}
+
+.addr-prompt-btn-primary {
+    border: none;
+    background: #4CAF50;
+    color: #ffffff;
+}
+
+.addr-prompt-btn-primary:active {
+    background: #388E3C;
+    transform: scale(0.98);
+}
+
+.addr-prompt-btn-secondary {
+    background: #ffffff;
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
+}
+
+.addr-prompt-btn-secondary:active {
+    background: #F1F7E5;
+    transform: scale(0.98);
+}
+
 /* Bottom cart bar */
 .cart-bottom-bar {
     position: fixed;

@@ -60,6 +60,10 @@ const UI_TEXTS = {
         clear_cart_confirm: "Savatdan hamma mahsulotlar o'chirilsinmi?",
         cancel_btn: "Bekor qilish",
         delete_btn: "O'chirish",
+        addr_prompt_title: "\"Buyurtmangizni qayerga yetkazib berish kerak? 🚀\"",
+        addr_prompt_desc: "Joylashuvingizni yuboring, biz esa sizga eng yaqin restoran filialini topib, taomlaringizni tez va qulay yetkazib beramiz!",
+        addr_auto: "Joylashuvni avtomatik hisoblash",
+        addr_manual: "Manzilni qo'lda ko'rsatish",
     },
     ru: {
         search_placeholder: "Поиск продуктов",
@@ -101,6 +105,10 @@ const UI_TEXTS = {
         clear_cart_confirm: "Удалить все товары из корзины?",
         cancel_btn: "Отмена",
         delete_btn: "Удалить",
+        addr_prompt_title: "\"Куда доставить ваш заказ? 🚀\"",
+        addr_prompt_desc: "Отправьте ваше местоположение, мы найдём ближайший филиал ресторана и доставим ваши блюда быстро и удобно!",
+        addr_auto: "Определить местоположение автоматически",
+        addr_manual: "Указать адрес вручную",
     },
 };
 
@@ -528,30 +536,99 @@ function pdChangeQty(delta) {
 function pdAddToCart() {
     if (!pdProduct) return;
 
-    cart[pdProduct.id] = {
-        id: pdProduct.id,
-        name: pdProduct.name,
-        price: Number(pdProduct.price),
-        image: pdProduct.image || '',
-        quantity: pdQty,
+    const doAdd = () => {
+        cart[pdProduct.id] = {
+            id: pdProduct.id,
+            name: pdProduct.name,
+            price: Number(pdProduct.price),
+            image: pdProduct.image || '',
+            quantity: pdQty,
+        };
+
+        updateCartUI();
+        renderAllCategoryProducts();
+        hideProductDetail();
+        tg.HapticFeedback?.notificationOccurred('success');
     };
 
-    updateCartUI();
-    renderAllCategoryProducts();
-    hideProductDetail();
-    tg.HapticFeedback?.notificationOccurred('success');
+    ensureAddress(doAdd);
+}
+
+// Pending action after address is chosen
+let pendingAfterAddress = null;
+
+function ensureAddress(callback) {
+    if (selectedAddress) {
+        callback();
+        return;
+    }
+    pendingAfterAddress = callback;
+    showAddressRequired();
+}
+
+function showAddressRequired() {
+    document.getElementById('address-required-modal').style.display = 'flex';
+}
+
+function hideAddressRequired(event) {
+    if (event && event.target.id !== 'address-required-modal') {
+        if (event.currentTarget && event.currentTarget.id !== 'address-required-modal') return;
+    }
+    document.getElementById('address-required-modal').style.display = 'none';
+}
+
+function useAutoLocation() {
+    if (!navigator.geolocation) {
+        pickAddressManually();
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            let label = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${LANG}`,
+                    { headers: { 'Accept': 'application/json' } }
+                );
+                const data = await res.json();
+                if (data.display_name) label = data.display_name;
+            } catch {}
+
+            selectedAddress = { lat, lng, label };
+            const shortLabel = label.length > 40 ? label.slice(0, 40) + '…' : label;
+            document.getElementById('address-text').textContent = shortLabel;
+            hideAddressRequired();
+            if (pendingAfterAddress) {
+                const cb = pendingAfterAddress;
+                pendingAfterAddress = null;
+                cb();
+            }
+        },
+        () => {
+            pickAddressManually();
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+    );
+}
+
+function pickAddressManually() {
+    hideAddressRequired();
+    showMap();
 }
 
 function addToCart(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    if (cart[productId]) {
-        openProductDetail(productId);
-        return;
-    }
-
-    openProductDetail(productId);
+    ensureAddress(() => {
+        if (cart[productId]) {
+            openProductDetail(productId);
+        } else {
+            openProductDetail(productId);
+        }
+    });
 }
 
 function changeQty(productId, delta) {
@@ -783,9 +860,11 @@ function hideCart() {
 }
 
 function showCheckout() {
-    hideCart();
-    renderOrderSummary();
-    document.getElementById('checkout-modal').style.display = 'flex';
+    ensureAddress(() => {
+        hideCart();
+        renderOrderSummary();
+        document.getElementById('checkout-modal').style.display = 'flex';
+    });
 }
 
 function hideCheckout() {
