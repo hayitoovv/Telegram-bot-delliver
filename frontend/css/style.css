@@ -963,38 +963,42 @@ body {
 .pd-qty-control {
     display: flex;
     align-items: center;
-    gap: 0;
-    border-radius: 25px;
-    border: 1.5px solid #e0e0e0;
-    overflow: hidden;
+    gap: 10px;
 }
 
 .pd-qty-btn {
-    width: 42px;
-    height: 42px;
-    border: none;
-    background: #f5f5f5;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     font-size: 20px;
     font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #333;
-    transition: background 0.15s;
+    transition: background 0.15s, transform 0.15s;
 }
 
-.pd-qty-btn:active { background: #e0e0e0; }
+.pd-qty-btn:active { transform: scale(0.92); }
+
+.pd-qty-minus {
+    background: transparent;
+    color: #333;
+    border: 1.5px solid #ccc;
+}
+
+.pd-qty-minus:active { background: #f5f5f5; }
 
 .pd-qty-plus {
     background: #7C4DFF;
     color: #ffffff;
+    border: none;
 }
 
 .pd-qty-plus:active { background: #5C35CC; }
 
 .pd-qty-value {
-    min-width: 40px;
+    min-width: 24px;
     text-align: center;
     font-size: 18px;
     font-weight: 700;
@@ -1003,23 +1007,40 @@ body {
 
 .pd-add-btn {
     flex: 1;
-    padding: 14px;
-    border: none;
-    border-radius: 25px;
-    background: linear-gradient(135deg, #7C4DFF, #536DFE);
-    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #1a1a1a;
+    border: 1px solid #ccc;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
-    transition: transform 0.15s, opacity 0.15s;
+    transition: transform 0.15s, background 0.15s;
 }
 
-.pd-add-btn:active { transform: scale(0.97); }
+.pd-add-btn:active {
+    transform: scale(0.97);
+    background: #f5f5f5;
+}
+
+.pd-cart-ic {
+    width: 20px;
+    height: 20px;
+    color: #7C4DFF;
+}
 
 .pd-add-btn.go-to-cart {
     background: #ffffff;
     color: #7C4DFF;
-    border: 2px solid #7C4DFF;
+    border: 1px solid #7C4DFF;
+}
+
+.pd-add-btn.go-to-cart .pd-cart-ic {
+    color: #7C4DFF;
 }
 
 /* Cart full page */
