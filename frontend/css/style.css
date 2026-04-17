@@ -525,6 +525,15 @@ body {
 }
 
 /* Categories horizontal scroll */
+#categories-section {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    background: var(--brand-cream);
+    border-bottom: 1.5px solid var(--brand-border);
+    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.06);
+}
+
 .categories-scroll {
     display: flex;
     gap: 14px;
