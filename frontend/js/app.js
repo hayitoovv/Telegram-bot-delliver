@@ -566,8 +566,10 @@ function renderOrderSummary() {
     </div>`;
     container.innerHTML = html;
 
-    document.getElementById('checkout-address').textContent =
-        selectedAddress ? selectedAddress.label : txt('address_not_selected');
+    const addrText = document.getElementById('checkout-address-text');
+    if (addrText) {
+        addrText.textContent = selectedAddress ? selectedAddress.label : txt('address_not_selected');
+    }
 }
 
 // ============================================
@@ -1131,8 +1133,8 @@ async function confirmLocation() {
     document.getElementById('address-text').textContent = label.length > 40
         ? label.slice(0, 40) + '…'
         : label;
-    const checkoutAddr = document.getElementById('checkout-address');
-    if (checkoutAddr) checkoutAddr.textContent = label;
+    const checkoutAddrText = document.getElementById('checkout-address-text');
+    if (checkoutAddrText) checkoutAddrText.textContent = label;
     hideMap();
     tg.HapticFeedback?.notificationOccurred('success');
     if (pendingAfterAddress) {
