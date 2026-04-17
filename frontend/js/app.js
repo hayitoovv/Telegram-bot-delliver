@@ -124,6 +124,18 @@ let selectedCategory = null;
 let selectedAddress = null; // { lat, lng, label }
 let searchQuery = '';
 
+// Load saved address from localStorage
+try {
+    const saved = localStorage.getItem('selected_address');
+    if (saved) selectedAddress = JSON.parse(saved);
+} catch {}
+
+function saveAddress() {
+    if (selectedAddress) {
+        localStorage.setItem('selected_address', JSON.stringify(selectedAddress));
+    }
+}
+
 // Map state
 let map = null;
 let mapMarker = null;
@@ -999,16 +1011,37 @@ function scheduleReverse(lat, lng) {
     }, 400);
 }
 
-function confirmLocation() {
+async function confirmLocation() {
     if (!pendingAddress) return;
+
+    // Agar label hali koordinata bo'lsa, reverse geocode ni kutish
+    const isCoordsOnly = /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(pendingAddress.label);
+    if (isCoordsOnly && window.ymaps) {
+        try {
+            const result = await ymaps.geocode([pendingAddress.lat, pendingAddress.lng], { results: 1 });
+            const firstGeoObject = result.geoObjects.get(0);
+            if (firstGeoObject) {
+                pendingAddress.label = firstGeoObject.getAddressLine();
+            }
+        } catch (err) {
+            console.error('Reverse geocode xato:', err);
+        }
+    }
     selectedAddress = { ...pendingAddress };
+    saveAddress();
     const label = selectedAddress.label;
     document.getElementById('address-text').textContent = label.length > 40
         ? label.slice(0, 40) + '…'
         : label;
-    document.getElementById('checkout-address').textContent = label;
+    const checkoutAddr = document.getElementById('checkout-address');
+    if (checkoutAddr) checkoutAddr.textContent = label;
     hideMap();
     tg.HapticFeedback?.notificationOccurred('success');
+    if (pendingAfterAddress) {
+        const cb = pendingAfterAddress;
+        pendingAfterAddress = null;
+        cb();
+    }
 }
 
 // ============================================
@@ -1101,8 +1134,20 @@ function applyTranslations() {
     });
 }
 
+function restoreAddressUI() {
+    if (!selectedAddress) return;
+    const label = selectedAddress.label;
+    const el = document.getElementById('address-text');
+    if (el) {
+        el.textContent = label.length > 40 ? label.slice(0, 40) + '…' : label;
+    }
+    const checkoutAddr = document.getElementById('checkout-address');
+    if (checkoutAddr) checkoutAddr.textContent = label;
+}
+
 async function init() {
     applyTranslations();
+    restoreAddressUI();
     try {
         await apiPost('auth/', {});
     } catch (e) {
