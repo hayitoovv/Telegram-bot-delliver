@@ -1631,6 +1631,21 @@ body {
     height: 100%;
 }
 
+/* Hide Yandex Maps branding and routing */
+.ymaps-2-1-79-copyrights-pane,
+.ymaps-2-1-79-copyright,
+[class*="copyright"],
+[class*="copyrights-pane"],
+[class*="ground-pane"] + [class*="copyrights"],
+[class*="logo"],
+[class*="route-panel"],
+[class*="gotoymaps"],
+[class*="router"],
+.ymaps-2-1-79-gotoymaps,
+.ymaps-2-1-79-map-copyrights-promo {
+    display: none !important;
+}
+
 /* Cart items */
 .cart-item {
     display: flex;
