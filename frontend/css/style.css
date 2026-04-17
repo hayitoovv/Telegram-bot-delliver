@@ -592,6 +592,7 @@ body {
 /* Category section with horizontal products */
 .category-block {
     margin-bottom: 20px;
+    scroll-margin-top: 110px;
 }
 
 .category-block-title {
