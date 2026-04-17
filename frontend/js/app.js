@@ -897,8 +897,13 @@ function initMap() {
         controls: [],
     }, { suppressMapOpenBlock: true });
 
+    const pinLayout = ymaps.templateLayoutFactory.createClass(
+        '<div class="yandex-pin"><svg viewBox="0 0 24 32" fill="#4CAF50"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z"/><circle cx="12" cy="12" r="5" fill="#ffffff"/></svg></div>'
+    );
+
     mapMarker = new ymaps.Placemark(start, {}, {
-        preset: 'islands#greenCircleDotIcon',
+        iconLayout: pinLayout,
+        iconShape: { type: 'Rectangle', coordinates: [[-16, -32], [16, 0]] },
         draggable: true,
     });
     map.geoObjects.add(mapMarker);

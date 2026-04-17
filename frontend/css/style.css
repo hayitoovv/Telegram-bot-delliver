@@ -1618,19 +1618,17 @@ body {
     line-height: 1.3;
 }
 
-.custom-pin {
-    background: transparent;
-    border: none;
+.yandex-pin {
+    width: 32px;
+    height: 40px;
+    transform: translate(-16px, -40px);
+    pointer-events: auto;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.3));
 }
 
-.pin-dot {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--brand-green);
-    border: 4px solid #ffffff;
-    box-shadow: 0 3px 8px rgba(46,125,50,0.5);
-    transform: translate(4px, 4px);
+.yandex-pin svg {
+    width: 100%;
+    height: 100%;
 }
 
 /* Cart items */
