@@ -428,13 +428,9 @@ body {
 
 /* Top bar */
 .top-bar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
     background: var(--brand-cream);
     padding: 12px;
     border-bottom: 2px solid var(--brand-border);
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.06);
 }
 
 .search-row {
@@ -528,7 +524,7 @@ body {
 #categories-section {
     position: sticky;
     top: 0;
-    z-index: 90;
+    z-index: 150;
     background: var(--brand-cream);
     border-bottom: 1.5px solid var(--brand-border);
     box-shadow: 0 2px 6px rgba(46, 125, 50, 0.06);
