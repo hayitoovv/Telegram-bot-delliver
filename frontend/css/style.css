@@ -855,11 +855,11 @@ body {
 /* Bottom cart bar */
 .cart-bottom-bar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
     padding: 14px 20px;
-    background: linear-gradient(135deg, #4CAF50, #4CAF50);
+    background: var(--brand-green);
     color: #ffffff;
     display: flex;
     align-items: center;
@@ -867,7 +867,14 @@ body {
     gap: 12px;
     cursor: pointer;
     z-index: 200;
-    border-radius: 16px 16px 0 0;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(139, 195, 74, 0.4);
+    transition: background 0.15s, transform 0.15s;
+}
+
+.cart-bottom-bar:active {
+    background: var(--brand-green-dark);
+    transform: scale(0.98);
 }
 
 .cart-bar-icon { font-size: 20px; }
