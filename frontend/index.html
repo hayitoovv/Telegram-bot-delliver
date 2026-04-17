@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
-    <link rel="stylesheet" href="/app/css/style.css?v=32">
+    <link rel="stylesheet" href="/app/css/style.css?v=33">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         (function() {
@@ -267,30 +267,86 @@
         </div>
     </div>
 
-    <!-- Checkout modal -->
+    <!-- Checkout modal - full page -->
     <div class="modal-overlay" id="checkout-modal" style="display: none;">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>📦 <span data-i18n="order_title">Buyurtma</span></h2>
-                <button class="close-btn" onclick="hideCheckout()">✕</button>
+        <div class="modal modal-full checkout-page">
+            <div class="checkout-header">
+                <button class="checkout-back" onclick="hideCheckout()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h2 data-i18n="checkout_title">Buyurtmani rasmiylashtirish</h2>
+                <div style="width:40px;"></div>
             </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>📍 <span data-i18n="address_label">Manzil</span></label>
-                    <div class="selected-address" id="checkout-address" data-i18n="address_not_selected">Manzil tanlanmagan</div>
-                    <button class="btn-secondary" onclick="showMap()" data-i18n="select_from_map">
-                        Xaritadan tanlash
-                    </button>
+            <div class="checkout-body">
+                <!-- Delivery methods -->
+                <div class="delivery-option selected" data-method="delivery" onclick="selectDeliveryMethod('delivery')">
+                    <div class="delivery-radio"></div>
+                    <div class="delivery-info">
+                        <div class="delivery-title" data-i18n="delivery_option">Yetkazib berish</div>
+                        <div class="delivery-desc" data-i18n="delivery_desc">Buyurtmangizni o'zimiz yetkazib beramiz.</div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>💬 <span data-i18n="comment_label">Izoh (ixtiyoriy)</span></label>
-                    <textarea id="comment-input" data-i18n="comment_placeholder" placeholder="Qo'shimcha izoh..." rows="2"></textarea>
+                <div class="delivery-option" data-method="pickup" onclick="selectDeliveryMethod('pickup')">
+                    <div class="delivery-radio"></div>
+                    <div class="delivery-info">
+                        <div class="delivery-title" data-i18n="pickup_option">Olib ketish</div>
+                        <div class="delivery-desc" data-i18n="pickup_desc">O'zingizga eng yaqin filialdan kelib olib ketishingiz mumkin.</div>
+                    </div>
                 </div>
+
+                <!-- Address section -->
+                <div id="checkout-address-block" class="checkout-address-block">
+                    <div class="checkout-row" onclick="openAddressesSheet()">
+                        <div class="checkout-row-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                        </div>
+                        <div class="checkout-row-content">
+                            <div class="checkout-row-label" data-i18n="delivery_address">Yetkazish manzili</div>
+                            <div class="checkout-row-value" id="checkout-address-text" data-i18n="address_not_selected">Manzil tanlanmagan</div>
+                        </div>
+                        <svg class="checkout-row-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </div>
+
+                    <!-- Entrance/Floor/Room -->
+                    <div class="checkout-addr-details">
+                        <input type="text" id="checkout-entrance" data-i18n="entrance" placeholder="Kirish yo'lagi" class="addr-detail-input">
+                        <input type="text" id="checkout-floor" data-i18n="floor" placeholder="Qavat" class="addr-detail-input">
+                        <input type="text" id="checkout-apartment" data-i18n="room" placeholder="Xona" class="addr-detail-input">
+                    </div>
+
+                    <!-- Courier comment -->
+                    <div class="checkout-row" onclick="toggleCourierComment()">
+                        <div class="checkout-row-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        </div>
+                        <div class="checkout-row-content">
+                            <div class="checkout-row-value" data-i18n="courier_comment">Kuryer uchun izoh (domofon kodi)</div>
+                        </div>
+                        <svg class="checkout-row-arrow" id="courier-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </div>
+                    <textarea id="comment-input" data-i18n="comment_placeholder" placeholder="Qo'shimcha izoh..." rows="2" class="courier-comment-input" style="display:none;"></textarea>
+                </div>
+
                 <div class="order-summary" id="order-summary"></div>
+            </div>
+            <div class="checkout-bottom">
                 <button class="btn-primary btn-order" id="submit-order-btn" onclick="submitOrder()" data-i18n="confirm_order">
                     ✅ Buyurtmani tasdiqlash
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Addresses bottom sheet -->
+    <div class="modal-overlay" id="addresses-sheet" style="display: none;" onclick="closeAddressesSheet(event)">
+        <div class="addresses-sheet-modal" onclick="event.stopPropagation()">
+            <div class="sheet-drag-handle"></div>
+            <div class="addresses-sheet-title" data-i18n="my_addresses">Manzillarim</div>
+            <div id="addresses-list"></div>
+            <button class="add-address-btn" onclick="createNewAddress()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span data-i18n="new_address">Yangi yaratish</span>
+            </button>
         </div>
     </div>
 
@@ -304,6 +360,6 @@
         </div>
     </div>
 
-    <script src="/app/js/app.js?v=32"></script>
+    <script src="/app/js/app.js?v=33"></script>
 </body>
 </html>

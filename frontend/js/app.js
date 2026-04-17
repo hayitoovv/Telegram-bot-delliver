@@ -64,6 +64,18 @@ const UI_TEXTS = {
         addr_prompt_desc: "Joylashuvingizni yuboring, biz esa sizga eng yaqin restoran filialini topib, taomlaringizni tez va qulay yetkazib beramiz!",
         addr_auto: "Joylashuvni avtomatik hisoblash",
         addr_manual: "Manzilni qo'lda ko'rsatish",
+        checkout_title: "Buyurtmani rasmiylashtirish",
+        delivery_option: "Yetkazib berish",
+        delivery_desc: "Buyurtmangizni o'zimiz yetkazib beramiz.",
+        pickup_option: "Olib ketish",
+        pickup_desc: "O'zingizga eng yaqin filialdan kelib olib ketishingiz mumkin.",
+        delivery_address: "Yetkazish manzili",
+        entrance: "Kirish yo'lagi",
+        floor: "Qavat",
+        room: "Xona",
+        courier_comment: "Kuryer uchun izoh (domofon kodi)",
+        my_addresses: "Manzillarim",
+        new_address: "Yangi yaratish",
     },
     ru: {
         search_placeholder: "Поиск продуктов",
@@ -109,6 +121,18 @@ const UI_TEXTS = {
         addr_prompt_desc: "Отправьте ваше местоположение, мы найдём ближайший филиал ресторана и доставим ваши блюда быстро и удобно!",
         addr_auto: "Определить местоположение автоматически",
         addr_manual: "Указать адрес вручную",
+        checkout_title: "Оформление заказа",
+        delivery_option: "Доставка",
+        delivery_desc: "Мы сами доставим ваш заказ.",
+        pickup_option: "Самовывоз",
+        pickup_desc: "Вы можете забрать заказ из ближайшего филиала.",
+        delivery_address: "Адрес доставки",
+        entrance: "Подъезд",
+        floor: "Этаж",
+        room: "Квартира",
+        courier_comment: "Комментарий для курьера (код домофона)",
+        my_addresses: "Мои адреса",
+        new_address: "Создать новый",
     },
 };
 
@@ -130,10 +154,84 @@ try {
     if (saved) selectedAddress = JSON.parse(saved);
 } catch {}
 
+let savedAddresses = [];
+try {
+    const list = localStorage.getItem('saved_addresses');
+    if (list) savedAddresses = JSON.parse(list);
+} catch {}
+
+let deliveryMethod = 'delivery';
+
 function saveAddress() {
-    if (selectedAddress) {
-        localStorage.setItem('selected_address', JSON.stringify(selectedAddress));
+    if (!selectedAddress) return;
+    localStorage.setItem('selected_address', JSON.stringify(selectedAddress));
+    // Saqlangan manzillar ro'yxatiga qo'shish (takrorlanmasligi uchun)
+    const exists = savedAddresses.find(a => a.label === selectedAddress.label);
+    if (!exists) {
+        savedAddresses.unshift({ ...selectedAddress });
+        if (savedAddresses.length > 5) savedAddresses.pop();
+        localStorage.setItem('saved_addresses', JSON.stringify(savedAddresses));
     }
+}
+
+function selectDeliveryMethod(method) {
+    deliveryMethod = method;
+    document.querySelectorAll('.delivery-option').forEach(el => {
+        el.classList.toggle('selected', el.dataset.method === method);
+    });
+    const addrBlock = document.getElementById('checkout-address-block');
+    if (addrBlock) addrBlock.style.display = method === 'pickup' ? 'none' : 'block';
+}
+
+function openAddressesSheet() {
+    renderAddressesList();
+    document.getElementById('addresses-sheet').style.display = 'flex';
+}
+
+function closeAddressesSheet(event) {
+    if (event && event.currentTarget && event.target !== event.currentTarget) return;
+    document.getElementById('addresses-sheet').style.display = 'none';
+}
+
+function renderAddressesList() {
+    const list = document.getElementById('addresses-list');
+    if (!savedAddresses.length) {
+        list.innerHTML = '';
+        return;
+    }
+    let html = '';
+    savedAddresses.forEach((addr, i) => {
+        const sel = (selectedAddress && selectedAddress.label === addr.label) ? 'selected' : '';
+        html += `
+        <div class="address-item ${sel}" onclick="chooseSavedAddress(${i})">
+            <div class="address-item-radio"></div>
+            <div class="address-item-text">${escapeHtml(addr.label)}</div>
+        </div>`;
+    });
+    list.innerHTML = html;
+}
+
+function chooseSavedAddress(i) {
+    const addr = savedAddresses[i];
+    if (!addr) return;
+    selectedAddress = { ...addr };
+    localStorage.setItem('selected_address', JSON.stringify(selectedAddress));
+    restoreAddressUI();
+    closeAddressesSheet();
+}
+
+function createNewAddress() {
+    closeAddressesSheet();
+    showMap();
+}
+
+function toggleCourierComment() {
+    const input = document.getElementById('comment-input');
+    const arrow = document.getElementById('courier-arrow');
+    const visible = input.style.display !== 'none';
+    input.style.display = visible ? 'none' : 'block';
+    arrow.classList.toggle('rotated', !visible);
+    if (!visible) input.focus();
 }
 
 // Map state
@@ -1049,16 +1147,27 @@ async function confirmLocation() {
 // ============================================
 
 async function submitOrder() {
-    if (!selectedAddress) {
+    if (deliveryMethod === 'delivery' && !selectedAddress) {
         alert(txt('select_address'));
         return;
     }
 
     const comment = document.getElementById('comment-input').value.trim();
+    const entrance = document.getElementById('checkout-entrance').value.trim();
+    const floor = document.getElementById('checkout-floor').value.trim();
+    const apartment = document.getElementById('checkout-apartment').value.trim();
+
     const items = Object.values(cart).map(item => ({
         product_id: item.id,
         quantity: item.quantity,
     }));
+
+    const fullComment = [
+        entrance && `Kirish: ${entrance}`,
+        floor && `Qavat: ${floor}`,
+        apartment && `Xona: ${apartment}`,
+        comment,
+    ].filter(Boolean).join(' | ');
 
     const submitBtn = document.getElementById('submit-order-btn');
     submitBtn.disabled = true;
@@ -1067,16 +1176,17 @@ async function submitOrder() {
     try {
         await apiPost('order/', {
             items,
-            address: selectedAddress.label,
-            comment,
-            latitude: selectedAddress.lat,
-            longitude: selectedAddress.lng,
+            address: deliveryMethod === 'pickup' ? 'Pickup (olib ketish)' : selectedAddress.label,
+            comment: fullComment,
+            latitude: deliveryMethod === 'pickup' ? null : selectedAddress?.lat,
+            longitude: deliveryMethod === 'pickup' ? null : selectedAddress?.lng,
+            delivery_method: deliveryMethod,
         });
 
         hideCheckout();
         cart = {};
         updateCartUI();
-        renderProducts();
+        renderAllCategoryProducts();
         document.getElementById('success-modal').style.display = 'flex';
         tg.HapticFeedback?.notificationOccurred('success');
     } catch (e) {
@@ -1141,8 +1251,8 @@ function restoreAddressUI() {
     if (el) {
         el.textContent = label.length > 40 ? label.slice(0, 40) + '…' : label;
     }
-    const checkoutAddr = document.getElementById('checkout-address');
-    if (checkoutAddr) checkoutAddr.textContent = label;
+    const checkoutAddrText = document.getElementById('checkout-address-text');
+    if (checkoutAddrText) checkoutAddrText.textContent = label;
 }
 
 async function init() {
