@@ -684,52 +684,45 @@ body {
 
 /* In-cart product card */
 .product-hcard.in-cart .product-info {
-    padding-bottom: 0;
+    padding-bottom: 6px;
 }
 
 .product-hcard .hcard-cart-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     padding: 6px 10px 10px;
-    border-top: 1px solid #f0f0f0;
-}
-
-.product-hcard .hcard-qty-control {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    border: 1.5px solid #e0e0e0;
-    border-radius: 20px;
 }
 
 .product-hcard .hcard-qty-btn {
-    width: 30px;
-    height: 30px;
-    border: none;
-    background: transparent;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border: 1px solid #ccc;
+    background: #ffffff;
+    border-radius: 8px;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 400;
+    line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #333;
-    transition: background 0.15s;
+    padding: 0;
+    transition: background 0.15s, transform 0.15s;
 }
 
-.product-hcard .hcard-qty-btn:active { background: #f0f0f0; }
-.product-hcard .hcard-qty-btn.hcard-plus { color: #4CAF50; }
+.product-hcard .hcard-qty-btn:active {
+    background: #f5f5f5;
+    transform: scale(0.92);
+}
 
 .product-hcard .hcard-qty-val {
-    min-width: 24px;
+    flex: 1;
     text-align: center;
-    font-size: 15px;
-    font-weight: 700;
-}
-
-.product-hcard .hcard-total {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
     color: #1a1a1a;
 }

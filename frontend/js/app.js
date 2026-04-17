@@ -269,12 +269,9 @@ function renderAllCategoryProducts() {
                         <div class="product-name">${product.name}</div>
                     </div>
                     <div class="hcard-cart-row" onclick="event.stopPropagation()">
-                        <div class="hcard-qty-control">
-                            <button class="hcard-qty-btn" onclick="changeQty(${product.id}, -1)">−</button>
-                            <span class="hcard-qty-val">${qty}</span>
-                            <button class="hcard-qty-btn hcard-plus" onclick="changeQty(${product.id}, 1)">+</button>
-                        </div>
-                        <div class="hcard-total">${formatPrice(product.price * qty)} UZS</div>
+                        <button class="hcard-qty-btn" onclick="changeQty(${product.id}, -1)">−</button>
+                        <span class="hcard-qty-val">${qty}</span>
+                        <button class="hcard-qty-btn hcard-plus" onclick="changeQty(${product.id}, 1)">+</button>
                     </div>
                 </div>`;
             } else {
