@@ -11,7 +11,10 @@
       "Bash(python *)",
       "mcp__claude_ai_UbuntuServer__server_read_file",
       "mcp__claude_ai_UbuntuServer__server_exec_command",
-      "Bash(.venv/Scripts/python.exe -c ' *)"
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
