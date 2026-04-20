@@ -260,8 +260,7 @@ function readHashInitData() {
         const hash = window.location.hash.substring(1);
         if (!hash) return '';
         const params = new URLSearchParams(hash);
-        const data = params.get('tgWebAppData');
-        return data ? decodeURIComponent(data) : '';
+        return params.get('tgWebAppData') || '';
     } catch {
         return '';
     }
