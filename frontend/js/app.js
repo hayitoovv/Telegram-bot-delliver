@@ -1090,26 +1090,53 @@ function initMap() {
     locateUser();
     scheduleReverse(start[0], start[1]);
 
-    // Search via Yandex Geocoder
+    // Search via Yandex Geocoder + Nominatim fallback
     const searchInput = document.getElementById('map-search-input');
     searchInput.addEventListener('keydown', async (e) => {
         if (e.key !== 'Enter') return;
         const q = searchInput.value.trim();
         if (!q) return;
-        try {
-            const result = await ymaps.geocode(q, { results: 1 });
-            const firstGeoObject = result.geoObjects.get(0);
-            if (firstGeoObject) {
-                const coords = firstGeoObject.geometry.getCoordinates();
-                const label = firstGeoObject.getAddressLine();
-                map.setCenter(coords, 17);
-                mapMarker.geometry.setCoordinates(coords);
-                setPending(coords[0], coords[1], label);
-            }
-        } catch (err) {
-            console.error('Qidirish xato:', err);
+        const found = await forwardGeocode(q);
+        if (found) {
+            map.setCenter([found.lat, found.lng], 17);
+            mapMarker.geometry.setCoordinates([found.lat, found.lng]);
+            setPending(found.lat, found.lng, found.label);
         }
     });
+}
+
+async function forwardGeocodeYandex(query) {
+    if (!window.ymaps || !ymaps.geocode) return null;
+    try {
+        const result = await ymaps.geocode(query, { results: 1 });
+        const firstGeoObject = result.geoObjects.get(0);
+        if (!firstGeoObject) return null;
+        const coords = firstGeoObject.geometry.getCoordinates();
+        return { lat: coords[0], lng: coords[1], label: firstGeoObject.getAddressLine() || query };
+    } catch (e) {
+        console.warn('Yandex forward geocode xato:', e);
+        return null;
+    }
+}
+
+async function forwardGeocodeNominatim(query) {
+    try {
+        const langParam = LANG === 'ru' ? 'ru' : 'uz,ru,en';
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=${langParam}&q=${encodeURIComponent(query)}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return null;
+        const arr = await res.json();
+        if (!arr.length) return null;
+        const hit = arr[0];
+        return { lat: parseFloat(hit.lat), lng: parseFloat(hit.lon), label: hit.display_name || query };
+    } catch (e) {
+        console.warn('Nominatim forward geocode xato:', e);
+        return null;
+    }
+}
+
+async function forwardGeocode(query) {
+    return (await forwardGeocodeYandex(query)) || (await forwardGeocodeNominatim(query));
 }
 
 function locateUser() {
@@ -1133,6 +1160,44 @@ function setPending(lat, lng, label) {
     document.getElementById('map-selected-label').textContent = label;
 }
 
+function isCoordsLabel(label) {
+    return !label || /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(label);
+}
+
+async function reverseGeocodeYandex(lat, lng) {
+    if (!window.ymaps || !ymaps.geocode) return '';
+    try {
+        const result = await ymaps.geocode([lat, lng], { results: 1 });
+        const firstGeoObject = result.geoObjects.get(0);
+        return firstGeoObject ? (firstGeoObject.getAddressLine() || '') : '';
+    } catch (e) {
+        console.warn('Yandex reverse geocode xato:', e);
+        return '';
+    }
+}
+
+async function reverseGeocodeNominatim(lat, lng) {
+    try {
+        const langParam = LANG === 'ru' ? 'ru' : 'uz,ru,en';
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${langParam}&zoom=18`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return '';
+        const data = await res.json();
+        return data.display_name || '';
+    } catch (e) {
+        console.warn('Nominatim reverse geocode xato:', e);
+        return '';
+    }
+}
+
+async function reverseGeocode(lat, lng) {
+    const yandex = await reverseGeocodeYandex(lat, lng);
+    if (yandex) return yandex;
+    const nominatim = await reverseGeocodeNominatim(lat, lng);
+    if (nominatim) return nominatim;
+    return '';
+}
+
 function scheduleReverse(lat, lng) {
     const labelEl = document.getElementById('map-selected-label');
     labelEl.textContent = txt('address_detecting');
@@ -1140,15 +1205,9 @@ function scheduleReverse(lat, lng) {
 
     if (reverseTimer) clearTimeout(reverseTimer);
     reverseTimer = setTimeout(async () => {
-        try {
-            const result = await ymaps.geocode([lat, lng], { results: 1 });
-            const firstGeoObject = result.geoObjects.get(0);
-            if (firstGeoObject) {
-                const label = firstGeoObject.getAddressLine();
-                setPending(lat, lng, label);
-            }
-        } catch (err) {
-            console.error('Reverse geocode xato:', err);
+        const label = await reverseGeocode(lat, lng);
+        if (label && pendingAddress && pendingAddress.lat === lat && pendingAddress.lng === lng) {
+            setPending(lat, lng, label);
         }
     }, 400);
 }
@@ -1157,16 +1216,10 @@ async function confirmLocation() {
     if (!pendingAddress) return;
 
     // Agar label hali koordinata bo'lsa, reverse geocode ni kutish
-    const isCoordsOnly = /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(pendingAddress.label);
-    if (isCoordsOnly && window.ymaps) {
-        try {
-            const result = await ymaps.geocode([pendingAddress.lat, pendingAddress.lng], { results: 1 });
-            const firstGeoObject = result.geoObjects.get(0);
-            if (firstGeoObject) {
-                pendingAddress.label = firstGeoObject.getAddressLine();
-            }
-        } catch (err) {
-            console.error('Reverse geocode xato:', err);
+    if (isCoordsLabel(pendingAddress.label)) {
+        const label = await reverseGeocode(pendingAddress.lat, pendingAddress.lng);
+        if (label) {
+            pendingAddress.label = label;
         }
     }
     selectedAddress = { ...pendingAddress };
