@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
-    <link rel="stylesheet" href="/app/css/style.css?v=33">
+    <link rel="stylesheet" href="/app/css/style.css?v=35">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         (function() {
@@ -111,26 +111,55 @@
 
     <!-- Register modal -->
     <div class="modal-overlay" id="register-modal" style="display: none;">
-        <div class="modal modal-sheet">
-            <div class="sheet-header">
-                <button class="sheet-back" onclick="hideRegister()">
+        <div class="modal modal-sheet register-sheet">
+            <div class="sheet-header register-header">
+                <button class="sheet-back-icon" onclick="hideRegister()" aria-label="Orqaga">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                    Orqaga
                 </button>
             </div>
-            <div class="modal-body">
-                <h2 class="sheet-title">Telefon raqamingizni kiriting</h2>
-                <div class="phone-input-wrap" id="phone-wrap">
-                    <span class="phone-flag">🇺🇿</span>
-                    <span class="phone-prefix">+998</span>
-                    <input type="tel" id="phone-input" maxlength="9" placeholder="90 123 45 67" inputmode="numeric">
+            <div class="modal-body register-body">
+                <div class="register-hero">
+                    <div class="register-hero-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="2" width="14" height="20" rx="3"/>
+                            <line x1="10" y1="18" x2="14" y2="18"/>
+                        </svg>
+                    </div>
                 </div>
-                <div id="phone-error" class="input-error" style="display:none;">Telefon raqami noto'g'ri</div>
+                <h2 class="register-title">Telefon raqamingizni kiriting</h2>
+                <p class="register-subtitle">Buyurtmalaringiz va yetkazib berish jarayonini kuzatib borish uchun</p>
+
+                <label class="phone-field" id="phone-wrap">
+                    <span class="phone-country">
+                        <svg class="phone-flag-svg" viewBox="0 0 24 16" aria-hidden="true">
+                            <rect width="24" height="5.33" y="0" fill="#1EB53A"/>
+                            <rect width="24" height="5.34" y="5.33" fill="#ffffff"/>
+                            <rect width="24" height="5.33" y="10.67" fill="#0099B5"/>
+                            <rect width="24" height="0.6" y="5.0" fill="#CE1126"/>
+                            <rect width="24" height="0.6" y="10.4" fill="#CE1126"/>
+                        </svg>
+                    </span>
+                    <span class="phone-prefix">+998</span>
+                    <input type="tel" id="phone-input" maxlength="9" placeholder="90 123 45 67" inputmode="numeric" autocomplete="tel">
+                    <span class="phone-input-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                    </span>
+                </label>
+                <div id="phone-error" class="input-error" style="display:none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/></svg>
+                    <span>Telefon raqami noto'g'ri</span>
+                </div>
+
                 <p class="terms-text">
                     Davom etish tugmasini bosish orqali siz bizning
                     <span class="link">foydalanish qoidalarimiz</span> ni qabul qilasiz.
                 </p>
-                <button class="btn-primary" onclick="submitPhone()">Davom etish</button>
+                <button class="btn-primary register-submit" onclick="submitPhone()">
+                    <span>Davom etish</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
             </div>
         </div>
     </div>
