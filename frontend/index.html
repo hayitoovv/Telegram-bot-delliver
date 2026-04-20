@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
-    <link rel="stylesheet" href="/app/css/style.css?v=36">
+    <link rel="stylesheet" href="/app/css/style.css?v=37">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         (function() {
@@ -24,10 +24,6 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
                 </span>
             </button>
-            <div class="brand-center">
-                <div class="brand-logo">AVENUE</div>
-                <div class="brand-tagline">MILLIY TAOMLAR</div>
-            </div>
             <button class="icon-btn" id="chat-btn" onclick="openChat()">
                 <span class="icon-circle">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -195,6 +191,10 @@
     <div class="drawer-overlay" id="drawer" style="display: none;" onclick="hideDrawer(event)">
         <div class="drawer" onclick="event.stopPropagation()">
             <div class="drawer-topbar">
+                <div class="drawer-brand">
+                    <div class="drawer-brand-logo">AVENUE</div>
+                    <div class="drawer-brand-tagline">MILLIY TAOMLAR</div>
+                </div>
                 <button class="drawer-close-icon" onclick="hideDrawer()" aria-label="Yopish">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
