@@ -128,7 +128,7 @@ def verify_telegram_data_detailed(init_data: str) -> tuple[dict | None, str | No
         if not user_str:
             return None, f"user_field_missing"
 
-        logger.info("verify_telegram_data: MATCH via %s", winning_variant)
+        _debug_log(f"MATCH via {winning_variant}")
         return json.loads(unquote(user_str)), None
 
     except (json.JSONDecodeError, KeyError, ValueError) as e:
