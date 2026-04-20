@@ -3,7 +3,6 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve as static_serve
-from django.views.generic import RedirectView
 
 FRONTEND_DIR = settings.BASE_DIR.parent / 'frontend'
 
@@ -15,7 +14,9 @@ urlpatterns = [
     path('api/', include('products.urls')),
     path('api/', include('orders.urls')),
     path('api/', include('users.urls')),
-    path('', RedirectView.as_view(url='/app/', permanent=False)),
+    # Serve index.html at root so Telegram WebApp URL hash (#tgWebAppData=...)
+    # is preserved — a redirect would drop the hash on some Telegram clients.
+    path('', _serve_frontend),
     re_path(r'^app/(?P<path>.*)$', _serve_frontend),
 ]
 

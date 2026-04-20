@@ -257,13 +257,46 @@ function readHashInitData() {
     }
 }
 
+const INIT_DATA_CACHE_KEY = 'tg_init_data_cache';
+
+function cacheInitData(value) {
+    if (!value) return;
+    try {
+        localStorage.setItem(INIT_DATA_CACHE_KEY, JSON.stringify({ value, at: Date.now() }));
+    } catch {}
+}
+
+function readCachedInitData() {
+    try {
+        const raw = localStorage.getItem(INIT_DATA_CACHE_KEY);
+        if (!raw) return '';
+        const { value, at } = JSON.parse(raw);
+        // Telegram signed initData expires after 24h; cache for 23h to be safe.
+        if (!value || Date.now() - at > 23 * 3600 * 1000) return '';
+        return value;
+    } catch {
+        return '';
+    }
+}
+
 function getInitData() {
-    if (tg.initData && tg.initData.length > 0) return tg.initData;
+    if (tg.initData && tg.initData.length > 0) {
+        cacheInitData(tg.initData);
+        return tg.initData;
+    }
 
-    // Try reading from URL hash (Telegram appends data even if SDK doesn't expose it)
+    // Telegram bazan initData ni SDK'ga emas, URL hash'ga qo'yadi.
     const hashData = readHashInitData();
-    if (hashData) return hashData;
+    if (hashData) {
+        cacheInitData(hashData);
+        return hashData;
+    }
 
+    // Oxirgi ishlatilgan initData — sahifa reload bo'lsa yoki hash yo'qolsa
+    const cached = readCachedInitData();
+    if (cached) return cached;
+
+    // DEBUG fallback (backend'da DEBUG=True bo'lsa): faqat user.id mavjud bo'lsa
     const u = tg.initDataUnsafe?.user;
     if (u && u.id) {
         return JSON.stringify({
@@ -287,6 +320,28 @@ async function apiGet(endpoint) {
     return res.json();
 }
 
+const AUTH_REASON_MSG = {
+    uz: {
+        empty_init_data: "Botdan \"Menyu\" tugmasi orqali qaytadan oching",
+        auth_date_expired: "Sessiya muddati tugadi. Botdan \"Menyu\" ni qaytadan oching",
+        hash_missing: "Telegram identifikatsiyasi to'liq emas. Botdan qaytadan oching",
+    },
+    ru: {
+        empty_init_data: "Откройте заново через кнопку \"Меню\" в боте",
+        auth_date_expired: "Сессия истекла. Откройте \"Меню\" в боте заново",
+        hash_missing: "Идентификация Telegram неполная. Откройте через бот заново",
+    },
+};
+
+function translateAuthReason(reason) {
+    if (!reason) return '';
+    const table = AUTH_REASON_MSG[LANG] || AUTH_REASON_MSG.uz;
+    for (const key of Object.keys(table)) {
+        if (reason.startsWith(key)) return table[key];
+    }
+    return reason;
+}
+
 async function apiPost(endpoint, data) {
     const res = await fetch(`${API_BASE}/api/${endpoint}`, {
         method: 'POST',
@@ -296,7 +351,8 @@ async function apiPost(endpoint, data) {
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const baseMsg = err.error || `API xato: ${res.status}`;
-        const suffix = err.reason ? ` (${err.reason})` : '';
+        const friendly = translateAuthReason(err.reason);
+        const suffix = friendly ? `: ${friendly}` : (err.reason ? ` (${err.reason})` : '');
         throw new Error(baseMsg + suffix);
     }
     return res.json();
