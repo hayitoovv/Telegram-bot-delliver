@@ -12,6 +12,10 @@ class Order(models.Model):
         DELIVERED = 'delivered', 'Yetkazildi'
         CANCELLED = 'cancelled', 'Bekor qilindi'
 
+    class DeliveryMethod(models.TextChoices):
+        DELIVERY = 'delivery', 'Yetkazib berish'
+        PICKUP = 'pickup', 'Olib ketish'
+
     user = models.ForeignKey(
         TelegramUser, on_delete=models.CASCADE,
         related_name='orders', verbose_name="Foydalanuvchi"
@@ -20,6 +24,10 @@ class Order(models.Model):
     status = models.CharField(
         max_length=20, choices=Status.choices,
         default=Status.PENDING, verbose_name="Holat"
+    )
+    delivery_method = models.CharField(
+        max_length=20, choices=DeliveryMethod.choices,
+        default=DeliveryMethod.DELIVERY, verbose_name="Servis turi"
     )
     address = models.TextField(verbose_name="Manzil")
     latitude = models.FloatField(null=True, blank=True, verbose_name="Kenglik")

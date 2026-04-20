@@ -58,3 +58,70 @@ def notify_admins_new_order(order):
             )
         except requests.RequestException as e:
             logger.error(f"Admin {chat_id} ga xabar yuborishda xato: {e}")
+
+
+def _delivery_label(method: str) -> str:
+    return 'Yetkazib berish' if method == 'delivery' else 'Olib ketish'
+
+
+def notify_user_new_order(order):
+    """Buyurtma qabul qilingani haqida foydalanuvchiga Telegram chek yuborish."""
+    bot_token = settings.TELEGRAM_BOT_TOKEN
+    if not bot_token:
+        logger.warning("TELEGRAM_BOT_TOKEN sozlanmagan, chek yuborilmadi")
+        return
+
+    user = order.user
+    display_name = html.escape(
+        f"{user.first_name or ''} {user.last_name or ''}".strip()
+        or (user.username or str(user.telegram_id))
+    )
+    phone = html.escape(user.phone or '-')
+
+    items_lines = []
+    for item in order.items.all():
+        name = html.escape(item.product_name)
+        subtotal = item.price * item.quantity
+        items_lines.append(
+            f"{name}\n   {item.quantity} x {item.price:,} = {subtotal:,} UZS"
+        )
+    items_text = '\n'.join(items_lines)
+
+    address = html.escape(order.address or '-')
+    delivery_label = _delivery_label(order.delivery_method)
+
+    lines = [
+        f"<b>🆔 ID:</b> #{order.id}",
+        f"<b>👤 Mijoz:</b> {display_name}",
+        f"<b>📞 Telefon:</b> {phone}",
+        f"<b>🚚 Servis turi:</b> {delivery_label}",
+        "",
+        items_text,
+        "",
+        f"<b>💰 Jami:</b> {order.total_price:,} UZS",
+        f"<b>🚴 Yetkazib berish:</b> 0 UZS",
+        "",
+        f"<b>📍 Manzil:</b> {address}",
+    ]
+    if order.comment:
+        lines.append(f"<b>💬 Izoh:</b> {html.escape(order.comment)}")
+    lines += [
+        "",
+        f"<b>💵 Jami summa:</b> {order.total_price:,} UZS",
+        f"<b>📌 Holati:</b> Yangi",
+    ]
+
+    message = "✅ <b>Buyurtma qabul qilindi!</b>\n\n" + '\n'.join(lines)
+
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+            json={
+                'chat_id': int(user.telegram_id),
+                'text': message,
+                'parse_mode': 'HTML',
+            },
+            timeout=10,
+        )
+    except requests.RequestException as e:
+        logger.error(f"Foydalanuvchi {user.telegram_id} ga chek yuborishda xato: {e}")

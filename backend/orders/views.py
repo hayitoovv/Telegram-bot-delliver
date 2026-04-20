@@ -8,7 +8,7 @@ from .serializers import OrderCreateSerializer, OrderSerializer
 from products.models import Product
 from users.models import TelegramUser
 from food_delivery.telegram_auth import verify_telegram_data_detailed
-from food_delivery.notifications import notify_admins_new_order
+from food_delivery.notifications import notify_admins_new_order, notify_user_new_order
 
 
 def _auth_error_response(reason: str):
@@ -79,6 +79,7 @@ class OrderCreateView(APIView):
         order = Order.objects.create(
             user=user,
             total_price=total_price,
+            delivery_method=data.get('delivery_method', 'delivery'),
             address=data['address'],
             latitude=data.get('latitude'),
             longitude=data.get('longitude'),
@@ -88,8 +89,9 @@ class OrderCreateView(APIView):
         for item in order_items:
             OrderItem.objects.create(order=order, **item)
 
-        # Adminlarga xabar yuborish
+        # Xabarnomalar
         notify_admins_new_order(order)
+        notify_user_new_order(order)
 
         return Response(
             OrderSerializer(order).data,
