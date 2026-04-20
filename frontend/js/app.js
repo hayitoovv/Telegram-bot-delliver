@@ -826,6 +826,7 @@ function updateCartUI() {
 // ============================================
 
 function showDrawer() {
+    updateLangButtonLabel();
     document.getElementById('drawer').style.display = 'flex';
     tg.HapticFeedback?.impactOccurred('light');
 }
@@ -833,6 +834,101 @@ function showDrawer() {
 function hideDrawer(event) {
     if (event && event.target.id !== 'drawer') return;
     document.getElementById('drawer').style.display = 'none';
+}
+
+function updateLangButtonLabel() {
+    const el = document.getElementById('lang-btn-label');
+    if (!el) return;
+    el.textContent = LANG === 'ru' ? 'Русский' : "O'zbekcha";
+}
+
+function notifyPopup(message) {
+    if (tg.showAlert) {
+        try { tg.showAlert(message); return; } catch {}
+    }
+    alert(message);
+}
+
+function showProfileInfo() {
+    const u = tg.initDataUnsafe?.user || {};
+    const phone = getUserPhone() || (LANG === 'ru' ? 'Не указан' : 'Kiritilmagan');
+    const lines = LANG === 'ru'
+        ? [
+            `Имя: ${u.first_name || '-'}`,
+            `Фамилия: ${u.last_name || '-'}`,
+            `Username: ${u.username ? '@' + u.username : '-'}`,
+            `Телефон: ${phone}`,
+        ]
+        : [
+            `Ism: ${u.first_name || '-'}`,
+            `Familiya: ${u.last_name || '-'}`,
+            `Username: ${u.username ? '@' + u.username : '-'}`,
+            `Telefon: ${phone}`,
+        ];
+    notifyPopup(lines.join('\n'));
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+async function openOrdersList() {
+    tg.HapticFeedback?.impactOccurred('light');
+    try {
+        const data = await apiPost('orders/', {});
+        const orders = data.orders || [];
+        if (!orders.length) {
+            notifyPopup(LANG === 'ru' ? 'У вас пока нет заказов' : "Sizda hali buyurtma yo'q");
+            return;
+        }
+        const statusLabels = {
+            pending: LANG === 'ru' ? 'В ожидании' : 'Kutilmoqda',
+            accepted: LANG === 'ru' ? 'Принят' : 'Qabul qilindi',
+            preparing: LANG === 'ru' ? 'Готовится' : 'Tayyorlanmoqda',
+            delivering: LANG === 'ru' ? 'Доставляется' : 'Yetkazilmoqda',
+            delivered: LANG === 'ru' ? 'Доставлен' : 'Yetkazildi',
+            cancelled: LANG === 'ru' ? 'Отменен' : 'Bekor qilindi',
+        };
+        const lines = orders.slice(0, 8).map(o => {
+            const date = new Date(o.created_at).toLocaleDateString(LANG === 'ru' ? 'ru-RU' : 'uz-UZ');
+            const st = statusLabels[o.status] || o.status;
+            return `#${o.id} — ${formatPrice(o.total_price)} UZS\n${date} · ${st}`;
+        });
+        notifyPopup(lines.join('\n\n'));
+    } catch (e) {
+        console.error('Buyurtmalarni olishda xato:', e);
+        notifyPopup(LANG === 'ru' ? 'Не удалось загрузить заказы' : "Buyurtmalarni yuklashda xato");
+    }
+}
+
+function openMyAddresses() {
+    hideDrawer();
+    openAddressesSheet();
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function showNotificationsInfo() {
+    notifyPopup(LANG === 'ru'
+        ? 'Уведомления скоро появятся'
+        : "Bildirishmalar tez orada qo'shiladi");
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function showAboutInfo() {
+    const text = LANG === 'ru'
+        ? "AVENUE — MILLIY TAOMLAR\n\nМы доставляем вам наши национальные блюда быстро и удобно. Все блюда готовятся из свежих и натуральных продуктов.\n\nПоддержка: @AvenueDastavkabot"
+        : "AVENUE — MILLIY TAOMLAR\n\nBiz sizga milliy taomlarimizni tez va qulay yetkazib beruvchi xizmatmiz. Barcha taomlarimiz tabiiy va yangi mahsulotlardan tayyorlanadi.\n\nQo'llab-quvvatlash: @AvenueDastavkabot";
+    notifyPopup(text);
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function toggleLanguage() {
+    const next = LANG === 'uz' ? 'ru' : 'uz';
+    const params = new URLSearchParams(window.location.search);
+    params.set('lang', next);
+    window.location.search = params.toString();
+}
+
+function exitApp() {
+    tg.HapticFeedback?.notificationOccurred('warning');
+    tg.close();
 }
 
 // ============================================
