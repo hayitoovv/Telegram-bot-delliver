@@ -1,6 +1,7 @@
 """Telegram Food Delivery Bot."""
 import os
 import re
+import json
 import asyncio
 import logging
 import httpx
@@ -88,7 +89,7 @@ async def set_user_lang(user_id: int, lang: str):
             await client.post(
                 f"{BACKEND_URL}/api/language/",
                 json={
-                    'initData': f'{{"id": {user_id}}}',
+                    'initData': json.dumps({'id': user_id}),
                     'language': lang,
                 },
             )
@@ -121,15 +122,17 @@ async def get_keyboard(user_id: int, lang: str):
 
 async def register_user(user):
     """Backendda foydalanuvchini ro'yxatga olish (fon rejimida)."""
+    payload = {
+        'id': user.id,
+        'first_name': user.first_name or '',
+        'last_name': user.last_name or '',
+        'username': user.username or '',
+    }
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             await client.post(
                 f"{BACKEND_URL}/api/auth/",
-                json={
-                    'initData': f'{{"id": {user.id}, "first_name": "{user.first_name}", '
-                                f'"last_name": "{user.last_name or ""}", '
-                                f'"username": "{user.username or ""}"}}'
-                },
+                json={'initData': json.dumps(payload)},
             )
     except httpx.HTTPError as e:
         logger.error(f"Backend ga ulanishda xato: {e}")

@@ -7,7 +7,7 @@ from rest_framework import status
 
 from .models import TelegramUser
 from .serializers import TelegramUserSerializer
-from food_delivery.telegram_auth import verify_telegram_data, verify_telegram_data_detailed
+from food_delivery.telegram_auth import verify_telegram_data_detailed
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 def _get_user_from_request(request):
     init_data = request.data.get('initData', '')
     if not init_data:
-        return None, Response({'error': 'initData talab qilinadi'}, status=400)
+        return None, None, Response({'error': 'initData talab qilinadi'}, status=400)
 
     user_data, reason = verify_telegram_data_detailed(init_data)
     if user_data is None:
-        return None, Response(
+        return None, None, Response(
             {'error': 'initData yaroqsiz', 'reason': reason},
             status=403,
         )
@@ -32,16 +32,24 @@ def _get_user_from_request(request):
             'username': user_data.get('username', ''),
         },
     )
-    return user, None
+    return user, user_data, None
+
+
+def _valid_admin_ids():
+    out = []
+    for i in settings.TELEGRAM_ADMIN_CHAT_IDS:
+        s = str(i).strip()
+        if s.lstrip('-').isdigit():
+            out.append(int(s))
+    return out
 
 
 class AuthView(APIView):
     def post(self, request):
-        user, err = _get_user_from_request(request)
+        user, user_data, err = _get_user_from_request(request)
         if err:
             return err
 
-        user_data = verify_telegram_data(request.data.get('initData', ''))
         user.first_name = user_data.get('first_name', user.first_name)
         user.last_name = user_data.get('last_name', user.last_name)
         user.username = user_data.get('username', user.username)
@@ -62,7 +70,7 @@ class LanguageView(APIView):
     """Foydalanuvchi tilini o'zgartirish."""
 
     def post(self, request):
-        user, err = _get_user_from_request(request)
+        user, _user_data, err = _get_user_from_request(request)
         if err:
             return err
 
@@ -89,7 +97,7 @@ class ChatView(APIView):
     """Mini-app chat xabarini adminga yo'naltiradi."""
 
     def post(self, request):
-        user, err = _get_user_from_request(request)
+        user, _user_data, err = _get_user_from_request(request)
         if err:
             return err
 
@@ -100,7 +108,7 @@ class ChatView(APIView):
             return Response({'error': 'Xabar juda uzun'}, status=400)
 
         bot_token = settings.TELEGRAM_BOT_TOKEN
-        admin_ids = [i for i in settings.TELEGRAM_ADMIN_CHAT_IDS if i.strip()]
+        admin_ids = _valid_admin_ids()
         if not bot_token or not admin_ids:
             logger.error("Admin chat: bot token yoki admin ID sozlanmagan")
             return Response({'error': 'Xizmat vaqtincha mavjud emas'}, status=503)
@@ -150,7 +158,7 @@ class ChatView(APIView):
                 resp = requests.post(
                     f"https://api.telegram.org/bot{bot_token}/sendMessage",
                     json={
-                        "chat_id": int(admin_id),
+                        "chat_id": admin_id,
                         "text": body,
                         "entities": entities,
                     },

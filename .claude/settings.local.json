@@ -14,7 +14,10 @@
       "Bash(.venv/Scripts/python.exe -c ' *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(grep -E \"\\\\.env$\")",
+      "Bash(node --check /d/PROJECTS/Telegram-bot-delliver/frontend/js/app.js)",
+      "Bash(git *)"
     ]
   }
 }

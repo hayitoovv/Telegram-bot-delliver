@@ -358,13 +358,14 @@ function renderAllCategoryProducts() {
         if (!catProducts.length) return;
 
         html += `<div class="category-block" id="cat-${cat.id}">`;
-        html += `<div class="category-block-title">${cat.name}</div>`;
+        html += `<div class="category-block-title">${escapeHtml(cat.name)}</div>`;
         html += `<div class="products-hscroll">`;
 
         catProducts.forEach(product => {
             const qty = cart[product.id]?.quantity || 0;
+            const safeName = escapeHtml(product.name);
             const imageHtml = product.image
-                ? `<img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">`
+                ? `<img class="product-image" src="${encodeURI(product.image)}" alt="${safeName}" loading="lazy">`
                 : `<div class="product-image no-image">🍽️</div>`;
 
             if (qty > 0) {
@@ -372,7 +373,7 @@ function renderAllCategoryProducts() {
                 <div class="product-hcard in-cart" onclick="openProductDetail(${product.id})">
                     ${imageHtml}
                     <div class="product-info">
-                        <div class="product-name">${product.name}</div>
+                        <div class="product-name">${safeName}</div>
                     </div>
                     <div class="hcard-cart-row" onclick="event.stopPropagation()">
                         <button class="hcard-qty-btn" onclick="changeQty(${product.id}, -1)">−</button>
@@ -385,7 +386,7 @@ function renderAllCategoryProducts() {
                 <div class="product-hcard" onclick="openProductDetail(${product.id})">
                     ${imageHtml}
                     <div class="product-info">
-                        <div class="product-name">${product.name}</div>
+                        <div class="product-name">${safeName}</div>
                         <div class="product-price-row">
                             <div class="product-price">${formatPrice(product.price)} UZS</div>
                         </div>
@@ -415,13 +416,14 @@ function renderCategoriesScroll() {
     let html = '';
     categories.forEach(cat => {
         const active = cat.id === selectedCategory ? 'active' : '';
+        const safeName = escapeHtml(cat.name);
         const img = cat.image
-            ? `<img class="category-chip-image" src="${cat.image}" alt="${cat.name}" loading="lazy">`
+            ? `<img class="category-chip-image" src="${encodeURI(cat.image)}" alt="${safeName}" loading="lazy">`
             : `<div class="category-chip-image no-image">🍽️</div>`;
         html += `
         <div class="category-chip ${active}" onclick="selectCategory(${cat.id}, '${escapeAttr(cat.name)}')">
             ${img}
-            <div class="category-chip-name">${cat.name}</div>
+            <div class="category-chip-name">${safeName}</div>
         </div>`;
     });
     container.innerHTML = html;
@@ -441,15 +443,16 @@ function renderProducts() {
     let html = '';
     list.forEach(product => {
         const qty = cart[product.id]?.quantity || 0;
+        const safeName = escapeHtml(product.name);
         const imageHtml = product.image
-            ? `<img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">`
+            ? `<img class="product-image" src="${encodeURI(product.image)}" alt="${safeName}" loading="lazy">`
             : `<div class="product-image no-image">🍽️</div>`;
 
         html += `
         <div class="product-card">
             ${imageHtml}
             <div class="product-info">
-                <div class="product-name">${product.name}</div>
+                <div class="product-name">${safeName}</div>
                 <div class="product-price">${formatPrice(product.price)} UZS</div>
                 <div class="product-actions">
                     ${qty === 0
@@ -479,14 +482,15 @@ function renderCart() {
 
     let html = '';
     items.forEach(item => {
+        const safeName = escapeHtml(item.name);
         const imgHtml = item.image
-            ? `<img class="cart-page-item-img" src="${item.image}" alt="${item.name}">`
+            ? `<img class="cart-page-item-img" src="${encodeURI(item.image)}" alt="${safeName}">`
             : `<div class="cart-page-item-img" style="display:flex;align-items:center;justify-content:center;font-size:24px;">🍽️</div>`;
         html += `
         <div class="cart-page-item">
             ${imgHtml}
             <div class="cart-page-item-info">
-                <div class="cart-page-item-name">${item.name}</div>
+                <div class="cart-page-item-name">${safeName}</div>
                 <div class="cart-page-item-price">${formatPrice(item.price * item.quantity)} UZS</div>
             </div>
             <div class="cart-page-item-qty">
@@ -543,7 +547,7 @@ function renderOrderSummary() {
     items.forEach(item => {
         html += `
         <div class="order-summary-item">
-            <span>${item.name} x${item.quantity}</span>
+            <span>${escapeHtml(item.name)} x${item.quantity}</span>
             <span>${formatPrice(item.price * item.quantity)} UZS</span>
         </div>`;
     });
@@ -714,13 +718,7 @@ function addToCart(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    ensureAddress(() => {
-        if (cart[productId]) {
-            openProductDetail(productId);
-        } else {
-            openProductDetail(productId);
-        }
-    });
+    ensureAddress(() => openProductDetail(productId));
 }
 
 function changeQty(productId, delta) {
