@@ -274,6 +274,9 @@ function getInitData() {
         });
     }
 
+    console.warn('[getInitData] BOSH! tg.initData=', tg.initData,
+                 'initDataUnsafe=', tg.initDataUnsafe,
+                 'hash=', window.location.hash.substring(0, 200));
     return '';
 }
 

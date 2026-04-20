@@ -71,10 +71,17 @@ def verify_telegram_data_detailed(init_data: str) -> tuple[dict | None, str | No
 
         if calculated_hash != received_hash:
             reason = f"hash_mismatch (keys={sorted(parsed.keys())})"
-            logger.warning(
-                "verify_telegram_data: hash_mismatch expected=%s got=%s token_tail=...%s",
+            logger.error(
+                "HASH_MISMATCH DIAG:\n"
+                "  raw_init_data=%r\n"
+                "  data_check_string=%r\n"
+                "  expected=%s\n"
+                "  got=%s\n"
+                "  token_tail=...%s (len=%d)",
+                init_data, data_check_string,
                 calculated_hash, received_hash,
                 bot_token[-6:] if bot_token else '',
+                len(bot_token),
             )
             return None, reason
 
