@@ -879,7 +879,8 @@ async function saveProfile() {
         setTimeout(hideProfilePage, 600);
     } catch (e) {
         console.error('Profil saqlashda xato:', e);
-        showToast(LANG === 'ru' ? 'Ошибка сохранения' : "Saqlashda xato");
+        const base = LANG === 'ru' ? 'Ошибка сохранения' : 'Saqlashda xato';
+        showToast(`${base}: ${e.message || ''}`);
         tg.HapticFeedback?.notificationOccurred('error');
     }
 }
