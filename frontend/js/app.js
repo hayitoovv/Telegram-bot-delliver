@@ -246,15 +246,6 @@ let reverseTimer = null;
 
 const COMMON_HEADERS = {};
 
-function getOrCreateTestId() {
-    let id = sessionStorage.getItem('test_tg_id');
-    if (!id) {
-        id = String(900000000 + Math.floor(Math.random() * 99999999));
-        sessionStorage.setItem('test_tg_id', id);
-    }
-    return parseInt(id, 10);
-}
-
 function readHashInitData() {
     try {
         const hash = window.location.hash.substring(1);
@@ -283,14 +274,7 @@ function getInitData() {
         });
     }
 
-    // Dev fallback: unique per browser tab so testing isn't all "Guest"
-    const testId = getOrCreateTestId();
-    return JSON.stringify({
-        id: testId,
-        first_name: `Test ${testId.toString().slice(-4)}`,
-        last_name: '',
-        username: '',
-    });
+    return '';
 }
 
 async function apiGet(endpoint) {
