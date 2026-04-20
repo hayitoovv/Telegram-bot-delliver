@@ -842,93 +842,279 @@ function updateLangButtonLabel() {
     el.textContent = LANG === 'ru' ? 'Русский' : "O'zbekcha";
 }
 
-function notifyPopup(message) {
-    if (tg.showAlert) {
-        try { tg.showAlert(message); return; } catch {}
-    }
-    alert(message);
-}
-
+// Profile page ================================================
 function showProfileInfo() {
     const u = tg.initDataUnsafe?.user || {};
-    const phone = getUserPhone() || (LANG === 'ru' ? 'Не указан' : 'Kiritilmagan');
-    const lines = LANG === 'ru'
-        ? [
-            `Имя: ${u.first_name || '-'}`,
-            `Фамилия: ${u.last_name || '-'}`,
-            `Username: ${u.username ? '@' + u.username : '-'}`,
-            `Телефон: ${phone}`,
-        ]
-        : [
-            `Ism: ${u.first_name || '-'}`,
-            `Familiya: ${u.last_name || '-'}`,
-            `Username: ${u.username ? '@' + u.username : '-'}`,
-            `Telefon: ${phone}`,
-        ];
-    notifyPopup(lines.join('\n'));
+    const phone = getUserPhone();
+    document.getElementById('profile-phone').value = phone || '';
+    document.getElementById('profile-first-name').value = u.first_name || '';
+    document.getElementById('profile-last-name').value = u.last_name || '';
+    hideDrawer();
+    document.getElementById('profile-modal').style.display = 'flex';
     tg.HapticFeedback?.impactOccurred('light');
 }
 
-async function openOrdersList() {
-    tg.HapticFeedback?.impactOccurred('light');
+function hideProfilePage() {
+    document.getElementById('profile-modal').style.display = 'none';
+}
+
+async function saveProfile() {
+    const firstName = document.getElementById('profile-first-name').value.trim();
+    const lastName = document.getElementById('profile-last-name').value.trim();
+    if (!firstName) {
+        showToast(LANG === 'ru' ? 'Введите имя' : "Ismingizni kiriting");
+        tg.HapticFeedback?.notificationOccurred('error');
+        return;
+    }
     try {
-        const data = await apiPost('orders/', {});
-        const orders = data.orders || [];
-        if (!orders.length) {
-            notifyPopup(LANG === 'ru' ? 'У вас пока нет заказов' : "Sizda hali buyurtma yo'q");
-            return;
-        }
-        const statusLabels = {
-            pending: LANG === 'ru' ? 'В ожидании' : 'Kutilmoqda',
-            accepted: LANG === 'ru' ? 'Принят' : 'Qabul qilindi',
-            preparing: LANG === 'ru' ? 'Готовится' : 'Tayyorlanmoqda',
-            delivering: LANG === 'ru' ? 'Доставляется' : 'Yetkazilmoqda',
-            delivered: LANG === 'ru' ? 'Доставлен' : 'Yetkazildi',
-            cancelled: LANG === 'ru' ? 'Отменен' : 'Bekor qilindi',
-        };
-        const lines = orders.slice(0, 8).map(o => {
-            const date = new Date(o.created_at).toLocaleDateString(LANG === 'ru' ? 'ru-RU' : 'uz-UZ');
-            const st = statusLabels[o.status] || o.status;
-            return `#${o.id} — ${formatPrice(o.total_price)} UZS\n${date} · ${st}`;
-        });
-        notifyPopup(lines.join('\n\n'));
+        await apiPost('profile/', { first_name: firstName, last_name: lastName });
+        showToast(LANG === 'ru' ? 'Сохранено' : "Saqlandi");
+        tg.HapticFeedback?.notificationOccurred('success');
+        setTimeout(hideProfilePage, 600);
     } catch (e) {
-        console.error('Buyurtmalarni olishda xato:', e);
-        notifyPopup(LANG === 'ru' ? 'Не удалось загрузить заказы' : "Buyurtmalarni yuklashda xato");
+        console.error('Profil saqlashda xato:', e);
+        showToast(LANG === 'ru' ? 'Ошибка сохранения' : "Saqlashda xato");
+        tg.HapticFeedback?.notificationOccurred('error');
     }
 }
 
+// Orders page ================================================
+let ordersCache = null;
+let ordersCurrentTab = 'active';
+
+const ORDER_STATUS_LABEL = {
+    uz: {
+        pending: 'Kutilmoqda', accepted: 'Qabul qilindi', preparing: 'Tayyorlanmoqda',
+        delivering: 'Yetkazilmoqda', delivered: 'Yetkazildi', cancelled: 'Bekor qilindi',
+    },
+    ru: {
+        pending: 'В ожидании', accepted: 'Принят', preparing: 'Готовится',
+        delivering: 'Доставляется', delivered: 'Доставлен', cancelled: 'Отменен',
+    },
+};
+const ORDER_ACTIVE_STATUSES = ['pending', 'accepted', 'preparing', 'delivering'];
+
+async function openOrdersList() {
+    hideDrawer();
+    document.getElementById('orders-modal').style.display = 'flex';
+    ordersCurrentTab = 'active';
+    document.querySelectorAll('.orders-tabs .tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === 'active');
+    });
+    tg.HapticFeedback?.impactOccurred('light');
+    await loadOrders();
+}
+
+function hideOrdersPage() {
+    document.getElementById('orders-modal').style.display = 'none';
+}
+
+async function loadOrders() {
+    const container = document.getElementById('orders-list-container');
+    container.innerHTML = `<div class="empty-search-state"><div class="empty-search-title">${txt('loading')}</div></div>`;
+    try {
+        const data = await apiPost('orders/', {});
+        ordersCache = data.orders || [];
+    } catch (e) {
+        console.error('Orders load fail:', e);
+        ordersCache = [];
+    }
+    renderOrdersList();
+}
+
+function switchOrdersTab(tab) {
+    ordersCurrentTab = tab;
+    document.querySelectorAll('.orders-tabs .tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    renderOrdersList();
+    tg.HapticFeedback?.selectionChanged?.();
+}
+
+function renderOrdersList() {
+    const container = document.getElementById('orders-list-container');
+    let orders = ordersCache || [];
+    if (ordersCurrentTab === 'active') {
+        orders = orders.filter(o => ORDER_ACTIVE_STATUSES.includes(o.status));
+    }
+    if (!orders.length) {
+        container.innerHTML = `
+            <div class="empty-search-state">
+                <div class="empty-search-icon">🔍</div>
+                <div class="empty-search-title">Hech qanday natija topilmadi</div>
+            </div>`;
+        return;
+    }
+    const statusLabels = ORDER_STATUS_LABEL[LANG] || ORDER_STATUS_LABEL.uz;
+    const locale = LANG === 'ru' ? 'ru-RU' : 'uz-UZ';
+    container.innerHTML = orders.map(o => {
+        const date = new Date(o.created_at).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+        const st = statusLabels[o.status] || o.status;
+        const addr = escapeHtml(o.address || '');
+        return `
+        <div class="order-card">
+            <div class="order-card-row">
+                <span class="order-card-id">#${o.id}</span>
+                <span class="order-card-status status-${o.status}">${escapeHtml(st)}</span>
+            </div>
+            <div class="order-card-row">
+                <span class="order-card-meta">${date}</span>
+                <span class="order-card-price">${formatPrice(o.total_price)} UZS</span>
+            </div>
+            <div class="order-card-meta">${addr}</div>
+        </div>`;
+    }).join('');
+}
+
+// My addresses page ============================================
 function openMyAddresses() {
     hideDrawer();
-    openAddressesSheet();
+    renderMyAddresses();
+    document.getElementById('my-addresses-modal').style.display = 'flex';
     tg.HapticFeedback?.impactOccurred('light');
 }
 
+function hideMyAddressesPage() {
+    document.getElementById('my-addresses-modal').style.display = 'none';
+}
+
+function renderMyAddresses() {
+    const container = document.getElementById('my-addresses-list');
+    if (!savedAddresses.length) {
+        container.innerHTML = `
+            <div class="empty-search-state">
+                <div class="empty-search-icon">📍</div>
+                <div class="empty-search-title">Hech qanday natija topilmadi</div>
+            </div>`;
+        return;
+    }
+    container.innerHTML = savedAddresses.map((addr, i) => `
+        <div class="address-card" onclick="editSavedAddress(${i})">
+            <div class="address-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+            </div>
+            <div class="address-card-text">${escapeHtml(addr.label || '')}</div>
+            <svg class="address-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`).join('');
+}
+
+function addNewAddressFromPage() {
+    hideMyAddressesPage();
+    showMap();
+}
+
+function editSavedAddress(i) {
+    const addr = savedAddresses[i];
+    if (!addr) return;
+    pendingAddress = { ...addr };
+    hideMyAddressesPage();
+    showMap();
+    setTimeout(() => {
+        if (map && mapMarker) {
+            map.setCenter([addr.lat, addr.lng], 17);
+            mapMarker.geometry.setCoordinates([addr.lat, addr.lng]);
+            setPending(addr.lat, addr.lng, addr.label);
+        }
+    }, 400);
+}
+
+// Notifications ================================================
 function showNotificationsInfo() {
-    notifyPopup(LANG === 'ru'
-        ? 'Уведомления скоро появятся'
-        : "Bildirishmalar tez orada qo'shiladi");
+    hideDrawer();
+    document.getElementById('notifications-modal').style.display = 'flex';
     tg.HapticFeedback?.impactOccurred('light');
 }
 
-function showAboutInfo() {
-    const text = LANG === 'ru'
-        ? "AVENUE — MILLIY TAOMLAR\n\nМы доставляем вам наши национальные блюда быстро и удобно. Все блюда готовятся из свежих и натуральных продуктов.\n\nПоддержка: @AvenueDastavkabot"
-        : "AVENUE — MILLIY TAOMLAR\n\nBiz sizga milliy taomlarimizni tez va qulay yetkazib beruvchi xizmatmiz. Barcha taomlarimiz tabiiy va yangi mahsulotlardan tayyorlanadi.\n\nQo'llab-quvvatlash: @AvenueDastavkabot";
-    notifyPopup(text);
+function hideNotificationsPage() {
+    document.getElementById('notifications-modal').style.display = 'none';
+}
+
+// Language page ================================================
+let langRadioValue = 'uz';
+
+function openLanguagePage() {
+    hideDrawer();
+    langRadioValue = LANG;
+    selectLangRadio(LANG);
+    document.getElementById('language-modal').style.display = 'flex';
     tg.HapticFeedback?.impactOccurred('light');
 }
 
-function toggleLanguage() {
-    const next = LANG === 'uz' ? 'ru' : 'uz';
+function hideLanguagePage() {
+    document.getElementById('language-modal').style.display = 'none';
+}
+
+function selectLangRadio(lang) {
+    langRadioValue = lang;
+    document.querySelectorAll('.radio-row').forEach((row, idx) => {
+        const val = idx === 0 ? 'uz' : 'ru';
+        row.classList.toggle('active', val === lang);
+    });
+    tg.HapticFeedback?.selectionChanged?.();
+}
+
+function confirmLanguage() {
+    if (langRadioValue === LANG) {
+        hideLanguagePage();
+        return;
+    }
     const params = new URLSearchParams(window.location.search);
-    params.set('lang', next);
+    params.set('lang', langRadioValue);
     window.location.search = params.toString();
 }
 
+// About ========================================================
+function showAboutInfo() {
+    hideDrawer();
+    document.getElementById('about-modal').style.display = 'flex';
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function hideAboutPage() {
+    document.getElementById('about-modal').style.display = 'none';
+}
+
+// Logout =======================================================
 function exitApp() {
+    document.getElementById('logout-dialog').style.display = 'flex';
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function hideLogoutDialog() {
+    document.getElementById('logout-dialog').style.display = 'none';
+}
+
+function doLogout() {
+    try {
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('chat_messages');
+    } catch {}
     tg.HapticFeedback?.notificationOccurred('warning');
     tg.close();
+}
+
+// Bottom language dropdown =====================================
+function toggleLanguage() {
+    // Til sahifasi — radio + Tasdiqlash
+    openLanguagePage();
+}
+
+function openLangQuick() {
+    document.getElementById('lang-quick-overlay').style.display = 'flex';
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function hideLangQuick(event) {
+    if (event && event.currentTarget && event.target !== event.currentTarget) return;
+    document.getElementById('lang-quick-overlay').style.display = 'none';
+}
+
+function setLangQuick(lang) {
+    document.getElementById('lang-quick-overlay').style.display = 'none';
+    if (lang === LANG) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('lang', lang);
+    window.location.search = params.toString();
 }
 
 // ============================================

@@ -66,6 +66,27 @@ class AuthView(APIView):
         })
 
 
+class ProfileView(APIView):
+    """Foydalanuvchi ism/familiyasini tahrirlash."""
+
+    def post(self, request):
+        user, _user_data, err = _get_user_from_request(request)
+        if err:
+            return err
+
+        first_name = (request.data.get('first_name') or '').strip()[:150]
+        last_name = (request.data.get('last_name') or '').strip()[:150]
+
+        if first_name:
+            user.first_name = first_name
+        user.last_name = last_name
+        user.save(update_fields=['first_name', 'last_name'])
+        return Response({
+            'ok': True,
+            'user': TelegramUserSerializer(user).data,
+        })
+
+
 class LanguageView(APIView):
     """Foydalanuvchi tilini o'zgartirish."""
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
-    <link rel="stylesheet" href="/app/css/style.css?v=41">
+    <link rel="stylesheet" href="/app/css/style.css?v=42">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         (function() {
@@ -248,7 +248,7 @@
                 </button>
             </nav>
             <div class="drawer-lang">
-                <button class="lang-btn" type="button" onclick="toggleLanguage()">
+                <button class="lang-btn" type="button" onclick="openLangQuick()">
                     <span class="lang-flag">
                         <svg viewBox="0 0 24 16" aria-hidden="true">
                             <rect width="24" height="5.33" y="0" fill="#1EB53A"/>
@@ -423,6 +423,208 @@
         </div>
     </div>
 
-    <script src="/app/js/app.js?v=37"></script>
+    <!-- Profile page -->
+    <div class="modal-overlay" id="profile-modal" style="display:none;">
+        <div class="modal modal-full side-page">
+            <div class="side-page-header">
+                <button class="sheet-back-icon" onclick="hideProfilePage()" aria-label="Orqaga">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h2 class="side-page-title">Shaxsiy ma'lumotlarim</h2>
+                <div class="side-page-spacer"></div>
+            </div>
+            <div class="side-page-body">
+                <div class="form-group">
+                    <label class="form-label">Telefon raqam</label>
+                    <div class="form-input readonly">
+                        <svg class="form-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <input type="text" id="profile-phone" readonly placeholder="-">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ism</label>
+                    <div class="form-input">
+                        <svg class="form-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+                        <input type="text" id="profile-first-name" placeholder="Ismingiz">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Familiya</label>
+                    <div class="form-input">
+                        <svg class="form-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+                        <input type="text" id="profile-last-name" placeholder="Familiyangiz">
+                    </div>
+                </div>
+            </div>
+            <div class="side-page-bottom">
+                <button class="btn-primary btn-purple" onclick="saveProfile()">O'zgarishlarni saqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders page -->
+    <div class="modal-overlay" id="orders-modal" style="display:none;">
+        <div class="modal modal-full side-page">
+            <div class="side-page-header">
+                <button class="sheet-back-icon" onclick="hideOrdersPage()" aria-label="Orqaga">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h2 class="side-page-title">Buyurtmalarim</h2>
+                <div class="side-page-spacer"></div>
+            </div>
+            <div class="orders-tabs">
+                <button class="tab-btn active" data-tab="active" onclick="switchOrdersTab('active')">Faol</button>
+                <button class="tab-btn" data-tab="all" onclick="switchOrdersTab('all')">Barchasi</button>
+            </div>
+            <div class="side-page-body orders-body" id="orders-list-container">
+                <div class="empty-search-state">
+                    <div class="empty-search-icon">🔍</div>
+                    <div class="empty-search-title">Hech qanday natija topilmadi</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My addresses page -->
+    <div class="modal-overlay" id="my-addresses-modal" style="display:none;">
+        <div class="modal modal-full side-page">
+            <div class="side-page-header">
+                <button class="sheet-back-icon" onclick="hideMyAddressesPage()" aria-label="Orqaga">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h2 class="side-page-title">Manzillarim</h2>
+                <button class="sheet-back-icon" onclick="addNewAddressFromPage()" aria-label="Yangi manzil">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+            <div class="side-page-body" id="my-addresses-list">
+                <div class="empty-search-state">
+                    <div class="empty-search-icon">📍</div>
+                    <div class="empty-search-title">Hech qanday natija topilmadi</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications page -->
+    <div class="modal-overlay" id="notifications-modal" style="display:none;">
+        <div class="modal modal-full side-page">
+            <div class="side-page-header">
+                <button class="sheet-back-icon" onclick="hideNotificationsPage()" aria-label="Orqaga">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h2 class="side-page-title">Bildirishmalar</h2>
+                <div class="side-page-spacer"></div>
+            </div>
+            <div class="side-page-body" id="notifications-list">
+                <div class="empty-search-state">
+                    <div class="empty-search-icon">🔔</div>
+                    <div class="empty-search-title">Hech qanday natija topilmadi</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Language page -->
+    <div class="modal-overlay" id="language-modal" style="display:none;">
+        <div class="modal modal-full side-page">
+            <div class="side-page-header">
+                <button class="sheet-back-icon" onclick="hideLanguagePage()" aria-label="Orqaga">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h2 class="side-page-title">Til</h2>
+                <div class="side-page-spacer"></div>
+            </div>
+            <div class="side-page-body">
+                <label class="radio-row" onclick="selectLangRadio('uz')">
+                    <span class="radio-flag">
+                        <svg viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="5.33" y="0" fill="#1EB53A"/><rect width="24" height="5.34" y="5.33" fill="#ffffff"/><rect width="24" height="5.33" y="10.67" fill="#0099B5"/><rect width="24" height="0.5" y="5.05" fill="#CE1126"/><rect width="24" height="0.5" y="10.45" fill="#CE1126"/></svg>
+                    </span>
+                    <span class="radio-label">O'zbekcha</span>
+                    <span class="radio-dot" id="lang-radio-uz"></span>
+                </label>
+                <label class="radio-row" onclick="selectLangRadio('ru')">
+                    <span class="radio-flag">
+                        <svg viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="5.33" y="0" fill="#ffffff"/><rect width="24" height="5.34" y="5.33" fill="#0039A6"/><rect width="24" height="5.33" y="10.67" fill="#D52B1E"/></svg>
+                    </span>
+                    <span class="radio-label">Русский</span>
+                    <span class="radio-dot" id="lang-radio-ru"></span>
+                </label>
+            </div>
+            <div class="side-page-bottom">
+                <button class="btn-primary btn-purple" onclick="confirmLanguage()">Tasdiqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About page -->
+    <div class="modal-overlay" id="about-modal" style="display:none;">
+        <div class="modal modal-full side-page">
+            <div class="side-page-header">
+                <button class="sheet-back-icon" onclick="hideAboutPage()" aria-label="Orqaga">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h2 class="side-page-title">Biz haqimizda</h2>
+                <div class="side-page-spacer"></div>
+            </div>
+            <div class="side-page-body about-body">
+                <div class="about-brand-card">
+                    <div class="about-brand-logo">🍲</div>
+                    <div class="about-brand-name">Gijduvon Milliy</div>
+                </div>
+                <div class="about-section">
+                    <div class="about-section-title">Ish vaqti</div>
+                    <div class="about-section-text">Dushanba–Yakshanba · 00:00 – 23:59</div>
+                </div>
+                <div class="about-section">
+                    <div class="about-section-title">Filiallar</div>
+                    <div class="about-branch">
+                        <div class="about-branch-name">Gijduvon Milliy — Markaziy filial</div>
+                        <div class="about-branch-addr">Gijduvon shahri, Ibn Sino ko'chasi, 1-uy</div>
+                    </div>
+                    <div class="about-branch">
+                        <div class="about-branch-name">Gijduvon Milliy — Bog'cha filial</div>
+                        <div class="about-branch-addr">Gijduvon shahri, Mustaqillik ko'chasi, 15</div>
+                    </div>
+                </div>
+                <div class="about-section">
+                    <div class="about-section-title">Qo'llab-quvvatlash</div>
+                    <div class="about-section-text">@AvenueDastavkabot</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout dialog -->
+    <div class="dialog-overlay" id="logout-dialog" style="display:none;">
+        <div class="dialog-box">
+            <div class="dialog-icon">🚪</div>
+            <p class="dialog-text">Haqiqatdan ham profilingizdan chiqib ketmoqchimisiz?</p>
+            <div class="dialog-actions">
+                <button class="dialog-btn dialog-btn-cancel" onclick="hideLogoutDialog()">Bekor qilish</button>
+                <button class="dialog-btn dialog-btn-logout" onclick="doLogout()">Chiqish</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick language dropdown (bottom drawer) -->
+    <div class="lang-quick-overlay" id="lang-quick-overlay" style="display:none;" onclick="hideLangQuick(event)">
+        <div class="lang-quick-menu" onclick="event.stopPropagation()">
+            <button class="lang-quick-item" onclick="setLangQuick('uz')">
+                <span class="lang-flag">
+                    <svg viewBox="0 0 24 16"><rect width="24" height="5.33" y="0" fill="#1EB53A"/><rect width="24" height="5.34" y="5.33" fill="#ffffff"/><rect width="24" height="5.33" y="10.67" fill="#0099B5"/><rect width="24" height="0.5" y="5.05" fill="#CE1126"/><rect width="24" height="0.5" y="10.45" fill="#CE1126"/></svg>
+                </span>
+                <span>O'zbekcha</span>
+            </button>
+            <button class="lang-quick-item" onclick="setLangQuick('ru')">
+                <span class="lang-flag">
+                    <svg viewBox="0 0 24 16"><rect width="24" height="5.33" y="0" fill="#ffffff"/><rect width="24" height="5.34" y="5.33" fill="#0039A6"/><rect width="24" height="5.33" y="10.67" fill="#D52B1E"/></svg>
+                </span>
+                <span>Русский</span>
+            </button>
+        </div>
+    </div>
+
+    <script src="/app/js/app.js?v=38"></script>
 </body>
 </html>
