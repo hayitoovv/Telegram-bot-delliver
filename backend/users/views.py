@@ -7,7 +7,7 @@ from rest_framework import status
 
 from .models import TelegramUser
 from .serializers import TelegramUserSerializer
-from food_delivery.telegram_auth import verify_telegram_data
+from food_delivery.telegram_auth import verify_telegram_data, verify_telegram_data_detailed
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +17,12 @@ def _get_user_from_request(request):
     if not init_data:
         return None, Response({'error': 'initData talab qilinadi'}, status=400)
 
-    user_data = verify_telegram_data(init_data)
+    user_data, reason = verify_telegram_data_detailed(init_data)
     if user_data is None:
-        return None, Response({'error': 'initData yaroqsiz'}, status=403)
+        body = {'error': 'initData yaroqsiz'}
+        if settings.DEBUG:
+            body['reason'] = reason
+        return None, Response(body, status=403)
 
     user, _ = TelegramUser.objects.get_or_create(
         telegram_id=user_data['id'],

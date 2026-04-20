@@ -7,8 +7,15 @@ from .models import Order, OrderItem
 from .serializers import OrderCreateSerializer, OrderSerializer
 from products.models import Product
 from users.models import TelegramUser
-from food_delivery.telegram_auth import verify_telegram_data
+from food_delivery.telegram_auth import verify_telegram_data_detailed
 from food_delivery.notifications import notify_admins_new_order
+
+
+def _auth_error_response(reason: str):
+    body = {'error': 'Autentifikatsiya xatosi'}
+    if settings.DEBUG:
+        body['reason'] = reason
+    return Response(body, status=status.HTTP_403_FORBIDDEN)
 
 
 class OrderCreateView(APIView):
@@ -17,12 +24,9 @@ class OrderCreateView(APIView):
     def post(self, request):
         # Foydalanuvchini tekshirish
         init_data = request.data.get('initData', '')
-        user_data = verify_telegram_data(init_data)
+        user_data, reason = verify_telegram_data_detailed(init_data)
         if user_data is None:
-            return Response(
-                {'error': 'Autentifikatsiya xatosi'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return _auth_error_response(reason)
 
         try:
             user = TelegramUser.objects.get(telegram_id=user_data['id'])
@@ -98,12 +102,9 @@ class OrderListView(APIView):
 
     def post(self, request):
         init_data = request.data.get('initData', '')
-        user_data = verify_telegram_data(init_data)
+        user_data, reason = verify_telegram_data_detailed(init_data)
         if user_data is None:
-            return Response(
-                {'error': 'Autentifikatsiya xatosi'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return _auth_error_response(reason)
 
         try:
             user = TelegramUser.objects.get(telegram_id=user_data['id'])

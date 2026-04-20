@@ -10,7 +10,8 @@
       "Bash(curl -s http://127.0.0.1:8000/app/css/style.css)",
       "Bash(python *)",
       "mcp__claude_ai_UbuntuServer__server_read_file",
-      "mcp__claude_ai_UbuntuServer__server_exec_command"
+      "mcp__claude_ai_UbuntuServer__server_exec_command",
+      "Bash(.venv/Scripts/python.exe -c ' *)"
     ]
   }
 }

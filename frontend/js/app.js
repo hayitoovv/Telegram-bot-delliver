@@ -308,7 +308,9 @@ async function apiPost(endpoint, data) {
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `API xato: ${res.status}`);
+        const baseMsg = err.error || `API xato: ${res.status}`;
+        const suffix = err.reason ? ` (${err.reason})` : '';
+        throw new Error(baseMsg + suffix);
     }
     return res.json();
 }
