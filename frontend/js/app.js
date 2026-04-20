@@ -836,10 +836,16 @@ function hideDrawer(event) {
     document.getElementById('drawer').style.display = 'none';
 }
 
+const FLAG_SVG = {
+    uz: '<svg viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="5.33" y="0" fill="#1EB53A"/><rect width="24" height="5.34" y="5.33" fill="#ffffff"/><rect width="24" height="5.33" y="10.67" fill="#0099B5"/><rect width="24" height="0.5" y="5.05" fill="#CE1126"/><rect width="24" height="0.5" y="10.45" fill="#CE1126"/></svg>',
+    ru: '<svg viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="5.33" y="0" fill="#ffffff"/><rect width="24" height="5.34" y="5.33" fill="#0039A6"/><rect width="24" height="5.33" y="10.67" fill="#D52B1E"/></svg>',
+};
+
 function updateLangButtonLabel() {
-    const el = document.getElementById('lang-btn-label');
-    if (!el) return;
-    el.textContent = LANG === 'ru' ? 'Русский' : "O'zbekcha";
+    const labelEl = document.getElementById('lang-btn-label');
+    if (labelEl) labelEl.textContent = LANG === 'ru' ? 'Русский' : "O'zbekcha";
+    const flagEl = document.getElementById('lang-btn-flag');
+    if (flagEl) flagEl.innerHTML = FLAG_SVG[LANG] || FLAG_SVG.uz;
 }
 
 // Profile page ================================================
@@ -998,17 +1004,29 @@ function renderMyAddresses() {
         </div>`).join('');
 }
 
+let editingAddressIndex = null;
+
+function updateMapTrashBtn() {
+    const btn = document.getElementById('map-trash-btn');
+    if (!btn) return;
+    btn.style.display = editingAddressIndex !== null ? 'flex' : 'none';
+}
+
 function addNewAddressFromPage() {
+    editingAddressIndex = null;
     hideMyAddressesPage();
     showMap();
+    updateMapTrashBtn();
 }
 
 function editSavedAddress(i) {
     const addr = savedAddresses[i];
     if (!addr) return;
+    editingAddressIndex = i;
     pendingAddress = { ...addr };
     hideMyAddressesPage();
     showMap();
+    updateMapTrashBtn();
     setTimeout(() => {
         if (map && mapMarker) {
             map.setCenter([addr.lat, addr.lng], 17);
@@ -1016,6 +1034,41 @@ function editSavedAddress(i) {
             setPending(addr.lat, addr.lng, addr.label);
         }
     }, 400);
+}
+
+function confirmDeleteAddress() {
+    if (editingAddressIndex === null) return;
+    document.getElementById('delete-address-dialog').style.display = 'flex';
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function hideDeleteAddressDialog() {
+    document.getElementById('delete-address-dialog').style.display = 'none';
+}
+
+function deleteCurrentAddress() {
+    if (editingAddressIndex === null) {
+        hideDeleteAddressDialog();
+        return;
+    }
+    const removed = savedAddresses[editingAddressIndex];
+    savedAddresses.splice(editingAddressIndex, 1);
+    localStorage.setItem('saved_addresses', JSON.stringify(savedAddresses));
+
+    // Agar o'chirilgan manzil hozirgi tanlangan bo'lsa — tozalash
+    if (selectedAddress && removed && selectedAddress.label === removed.label) {
+        selectedAddress = null;
+        localStorage.removeItem('selected_address');
+        const el = document.getElementById('address-text');
+        if (el) el.textContent = LANG === 'ru' ? 'Выберите адрес доставки' : 'Yetkazish manzilini tanlang';
+    }
+
+    editingAddressIndex = null;
+    hideDeleteAddressDialog();
+    hideMap();
+    tg.HapticFeedback?.notificationOccurred('success');
+    // Qaytib manzillar ro'yxatiga
+    openMyAddresses();
 }
 
 // Notifications ================================================
@@ -1314,6 +1367,8 @@ function showMap() {
 
 function hideMap() {
     document.getElementById('map-modal').style.display = 'none';
+    editingAddressIndex = null;
+    updateMapTrashBtn();
 }
 
 function initMap() {
@@ -1505,7 +1560,17 @@ async function confirmLocation() {
         }
     }
     selectedAddress = { ...pendingAddress };
-    saveAddress();
+
+    // Agar tahrirlash rejimi bo'lsa — mavjud yozuvni yangilash
+    if (editingAddressIndex !== null && savedAddresses[editingAddressIndex]) {
+        savedAddresses[editingAddressIndex] = { ...selectedAddress };
+        localStorage.setItem('saved_addresses', JSON.stringify(savedAddresses));
+        localStorage.setItem('selected_address', JSON.stringify(selectedAddress));
+        editingAddressIndex = null;
+    } else {
+        saveAddress();
+    }
+
     const label = selectedAddress.label;
     document.getElementById('address-text').textContent = label.length > 40
         ? label.slice(0, 40) + '…'
@@ -1513,6 +1578,7 @@ async function confirmLocation() {
     const checkoutAddrText = document.getElementById('checkout-address-text');
     if (checkoutAddrText) checkoutAddrText.textContent = label;
     hideMap();
+    updateMapTrashBtn();
     tg.HapticFeedback?.notificationOccurred('success');
     if (pendingAfterAddress) {
         const cb = pendingAfterAddress;
@@ -1636,6 +1702,7 @@ function restoreAddressUI() {
 
 async function init() {
     applyTranslations();
+    updateLangButtonLabel();
     restoreAddressUI();
     try {
         await apiPost('auth/', {});

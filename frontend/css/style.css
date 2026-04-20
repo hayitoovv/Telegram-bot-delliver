@@ -2115,6 +2115,32 @@ body {
     color: var(--tg-theme-text-color);
 }
 
+.map-trash-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: #ffffff;
+    color: #EF4444;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s, background 0.15s;
+}
+
+.map-trash-btn:active {
+    transform: scale(0.94);
+    background: #FEE2E2;
+}
+
+.map-trash-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
 #map-container {
     flex: 1;
     min-height: 300px;

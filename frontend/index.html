@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
-    <link rel="stylesheet" href="/app/css/style.css?v=42">
+    <link rel="stylesheet" href="/app/css/style.css?v=43">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         (function() {
@@ -249,15 +249,7 @@
             </nav>
             <div class="drawer-lang">
                 <button class="lang-btn" type="button" onclick="openLangQuick()">
-                    <span class="lang-flag">
-                        <svg viewBox="0 0 24 16" aria-hidden="true">
-                            <rect width="24" height="5.33" y="0" fill="#1EB53A"/>
-                            <rect width="24" height="5.34" y="5.33" fill="#ffffff"/>
-                            <rect width="24" height="5.33" y="10.67" fill="#0099B5"/>
-                            <rect width="24" height="0.5" y="5.05" fill="#CE1126"/>
-                            <rect width="24" height="0.5" y="10.45" fill="#CE1126"/>
-                        </svg>
-                    </span>
+                    <span class="lang-flag" id="lang-btn-flag"></span>
                     <span id="lang-btn-label">O'zbekcha</span>
                     <svg class="lang-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
@@ -277,6 +269,9 @@
                     <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" id="map-search-input" placeholder="Manzilni qidirish">
                 </div>
+                <button class="map-trash-btn" id="map-trash-btn" onclick="confirmDeleteAddress()" style="display:none;" aria-label="O'chirish">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                </button>
             </div>
             <div id="map-container"></div>
             <div class="map-controls">
@@ -595,6 +590,18 @@
         </div>
     </div>
 
+    <!-- Delete address dialog -->
+    <div class="dialog-overlay" id="delete-address-dialog" style="display:none;">
+        <div class="dialog-box">
+            <div class="dialog-icon">🗑️</div>
+            <p class="dialog-text">Manzilni o'chirmoqchimisiz?</p>
+            <div class="dialog-actions">
+                <button class="dialog-btn dialog-btn-cancel" onclick="hideDeleteAddressDialog()">Bekor qilish</button>
+                <button class="dialog-btn dialog-btn-logout" onclick="deleteCurrentAddress()">O'chirish</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Logout dialog -->
     <div class="dialog-overlay" id="logout-dialog" style="display:none;">
         <div class="dialog-box">
@@ -625,6 +632,6 @@
         </div>
     </div>
 
-    <script src="/app/js/app.js?v=38"></script>
+    <script src="/app/js/app.js?v=39"></script>
 </body>
 </html>
