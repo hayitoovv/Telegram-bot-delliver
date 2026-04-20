@@ -2220,13 +2220,12 @@ body {
 /* Hide Yandex Maps branding and routing */
 .ymaps-2-1-79-copyrights-pane,
 .ymaps-2-1-79-copyright,
-[class*="copyright"],
-[class*="copyrights-pane"],
-[class*="ground-pane"] + [class*="copyrights"],
-[class*="logo"],
-[class*="route-panel"],
-[class*="gotoymaps"],
-[class*="router"],
+[class^="ymaps-"][class*="copyright"],
+[class^="ymaps-"][class*="copyrights-pane"],
+[class^="ymaps-"][class*="logo"],
+[class^="ymaps-"][class*="route-panel"],
+[class^="ymaps-"][class*="gotoymaps"],
+[class^="ymaps-"][class*="router"],
 .ymaps-2-1-79-gotoymaps,
 .ymaps-2-1-79-map-copyrights-promo {
     display: none !important;
