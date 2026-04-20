@@ -3,12 +3,28 @@ import hashlib
 import hmac
 import json
 import logging
+import sys
 import time
 from urllib.parse import parse_qs, unquote
 
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+_DEBUG_LOG_PATH = '/tmp/telegram_auth_debug.log'
+
+
+def _debug_log(msg: str) -> None:
+    """Ham stderr, ham /tmp/ ga yozadi — diagnostika uchun."""
+    try:
+        print(msg, file=sys.stderr, flush=True)
+    except Exception:
+        pass
+    try:
+        with open(_DEBUG_LOG_PATH, 'a', encoding='utf-8') as f:
+            f.write(msg + '\n')
+    except Exception:
+        pass
 
 
 def verify_telegram_data(init_data: str) -> dict | None:
@@ -71,17 +87,14 @@ def verify_telegram_data_detailed(init_data: str) -> tuple[dict | None, str | No
 
         if calculated_hash != received_hash:
             reason = f"hash_mismatch (keys={sorted(parsed.keys())})"
-            logger.error(
-                "HASH_MISMATCH DIAG:\n"
-                "  raw_init_data=%r\n"
-                "  data_check_string=%r\n"
-                "  expected=%s\n"
-                "  got=%s\n"
-                "  token_tail=...%s (len=%d)",
-                init_data, data_check_string,
-                calculated_hash, received_hash,
-                bot_token[-6:] if bot_token else '',
-                len(bot_token),
+            _debug_log(
+                "=== HASH_MISMATCH DIAG ===\n"
+                f"  raw_init_data={init_data!r}\n"
+                f"  data_check_string={data_check_string!r}\n"
+                f"  expected={calculated_hash}\n"
+                f"  got={received_hash}\n"
+                f"  token_tail=...{bot_token[-6:] if bot_token else ''} (len={len(bot_token)})\n"
+                "=========================="
             )
             return None, reason
 
