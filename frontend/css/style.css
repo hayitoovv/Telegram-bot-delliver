@@ -37,6 +37,11 @@ body {
     padding: 4px 0;
 }
 
+.brand-center {
+    flex: 1;
+    text-align: center;
+}
+
 .icon-btn {
     background: transparent;
     border: none;
@@ -515,34 +520,8 @@ body {
 
 .drawer-topbar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 16px 18px 10px;
-    border-bottom: 1px solid #F3F4F6;
-}
-
-.drawer-brand {
-    flex: 1;
-    text-align: center;
-    padding-left: 36px; /* close tugma kengligini balansirovkalash uchun */
-}
-
-.drawer-brand-logo {
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: 4px;
-    color: var(--brand-green-dark);
-    font-family: 'Georgia', serif;
-    line-height: 1;
-}
-
-.drawer-brand-tagline {
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--brand-green-dark);
-    font-weight: 600;
-    margin-top: 3px;
+    justify-content: flex-end;
+    padding: 14px 16px 6px;
 }
 
 .drawer-close-icon {
