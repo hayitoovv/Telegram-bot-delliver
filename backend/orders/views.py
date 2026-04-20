@@ -12,10 +12,10 @@ from food_delivery.notifications import notify_admins_new_order
 
 
 def _auth_error_response(reason: str):
-    body = {'error': 'Autentifikatsiya xatosi'}
-    if settings.DEBUG:
-        body['reason'] = reason
-    return Response(body, status=status.HTTP_403_FORBIDDEN)
+    return Response(
+        {'error': 'Autentifikatsiya xatosi', 'reason': reason},
+        status=status.HTTP_403_FORBIDDEN,
+    )
 
 
 class OrderCreateView(APIView):

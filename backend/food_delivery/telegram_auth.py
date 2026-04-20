@@ -70,12 +70,12 @@ def verify_telegram_data_detailed(init_data: str) -> tuple[dict | None, str | No
         ).hexdigest()
 
         if calculated_hash != received_hash:
-            reason = (
-                f"hash_mismatch (expected={calculated_hash[:12]}..., "
-                f"got={received_hash[:12]}..., keys={sorted(parsed.keys())}, "
-                f"token_tail=...{bot_token[-6:] if bot_token else ''})"
+            reason = f"hash_mismatch (keys={sorted(parsed.keys())})"
+            logger.warning(
+                "verify_telegram_data: hash_mismatch expected=%s got=%s token_tail=...%s",
+                calculated_hash, received_hash,
+                bot_token[-6:] if bot_token else '',
             )
-            logger.warning("verify_telegram_data: %s", reason)
             return None, reason
 
         # auth_date 24 soatdan eski bo'lmasligi kerak

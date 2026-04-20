@@ -19,10 +19,10 @@ def _get_user_from_request(request):
 
     user_data, reason = verify_telegram_data_detailed(init_data)
     if user_data is None:
-        body = {'error': 'initData yaroqsiz'}
-        if settings.DEBUG:
-            body['reason'] = reason
-        return None, Response(body, status=403)
+        return None, Response(
+            {'error': 'initData yaroqsiz', 'reason': reason},
+            status=403,
+        )
 
     user, _ = TelegramUser.objects.get_or_create(
         telegram_id=user_data['id'],
