@@ -103,7 +103,7 @@ REST_FRAMEWORK = {
 }
 
 # Telegram
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
-TELEGRAM_ADMIN_CHAT_IDS = os.getenv('TELEGRAM_ADMIN_CHAT_IDS', '').split(',')
-MINI_APP_URL = os.getenv('MINI_APP_URL', '')
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '').strip()
+TELEGRAM_ADMIN_CHAT_IDS = os.getenv('TELEGRAM_ADMIN_CHAT_IDS', '').strip().split(',')
+MINI_APP_URL = os.getenv('MINI_APP_URL', '').strip()
 MIN_ORDER_AMOUNT = int(os.getenv('MIN_ORDER_AMOUNT', '40000'))
