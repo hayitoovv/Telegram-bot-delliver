@@ -87,6 +87,20 @@ class ProfileView(APIView):
         })
 
 
+class LogoutView(APIView):
+    """Foydalanuvchi profilini tozalash (telefon, til default qiymatga)."""
+
+    def post(self, request):
+        user, _user_data, err = _get_user_from_request(request)
+        if err:
+            return err
+
+        user.phone = ''
+        user.language = 'uz'
+        user.save(update_fields=['phone', 'language'])
+        return Response({'ok': True})
+
+
 class LanguageView(APIView):
     """Foydalanuvchi tilini o'zgartirish."""
 

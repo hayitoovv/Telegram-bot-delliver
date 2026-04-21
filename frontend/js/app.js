@@ -1138,12 +1138,39 @@ function hideLogoutDialog() {
     document.getElementById('logout-dialog').style.display = 'none';
 }
 
-function doLogout() {
+async function doLogout() {
+    const btn = document.querySelector('#logout-dialog .dialog-btn-logout');
+    if (btn) btn.disabled = true;
+
+    // Backend'dan telefon va boshqa ma'lumotlarni tozalash
     try {
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('chat_messages');
+        await apiPost('logout/', {});
+    } catch (e) {
+        console.error('Logout backend xato:', e);
+    }
+
+    // Mahalliy hamma ma'lumotlarni o'chirish
+    try {
+        const keysToRemove = [
+            'user_data',
+            'chat_messages',
+            'selected_address',
+            'saved_addresses',
+            'tg_init_data_cache',
+        ];
+        keysToRemove.forEach(k => localStorage.removeItem(k));
     } catch {}
+
+    // State'ni ham tozalash
+    cart = {};
+    selectedAddress = null;
+    savedAddresses = [];
+    editingAddressIndex = null;
+    pendingAfterPhone = null;
+    pendingAfterAddress = null;
+
     tg.HapticFeedback?.notificationOccurred('warning');
+    hideLogoutDialog();
     tg.close();
 }
 
