@@ -149,6 +149,11 @@ body {
     margin-bottom: 18px;
 }
 
+/* Register modal — yuqoriroq z-index, checkout ustida chiqishi uchun */
+#register-modal {
+    z-index: 1100;
+}
+
 /* Register sheet — modern */
 .register-sheet {
     border-radius: 24px 24px 0 0;
