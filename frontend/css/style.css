@@ -25,6 +25,44 @@ body {
     color: var(--tg-theme-text-color);
     padding-bottom: 90px;
     min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Modal ochilganda body scroll bo'lmasin */
+body.no-scroll {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
+/* Scrollbar yashirish — hamma scroll konteynerlarda */
+body, .modal-overlay, .modal, .side-page, .side-page-body,
+.drawer, .drawer-menu, .chat-body, .modal-success, .modal-full,
+#orders-list-container, #my-addresses-list, #notifications-list,
+.or-body, .order-detail-body, .checkout-body {
+    scrollbar-width: none;            /* Firefox */
+    -ms-overflow-style: none;          /* IE/Edge */
+}
+
+body::-webkit-scrollbar,
+.modal-overlay::-webkit-scrollbar,
+.modal::-webkit-scrollbar,
+.side-page::-webkit-scrollbar,
+.side-page-body::-webkit-scrollbar,
+.drawer::-webkit-scrollbar,
+.drawer-menu::-webkit-scrollbar,
+.chat-body::-webkit-scrollbar,
+.modal-success::-webkit-scrollbar,
+.modal-full::-webkit-scrollbar,
+#orders-list-container::-webkit-scrollbar,
+#my-addresses-list::-webkit-scrollbar,
+#notifications-list::-webkit-scrollbar,
+.or-body::-webkit-scrollbar,
+.order-detail-body::-webkit-scrollbar,
+.checkout-body::-webkit-scrollbar {
+    display: none;                    /* Chrome/Safari */
+    width: 0;
+    height: 0;
 }
 
 /* Brand */

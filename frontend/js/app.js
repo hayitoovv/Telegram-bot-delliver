@@ -1976,10 +1976,29 @@ function restoreAddressUI() {
     if (checkoutAddrText) checkoutAddrText.textContent = label;
 }
 
+function updateBodyScrollLock() {
+    const selectors = '.modal-overlay, .dialog-overlay, .drawer-overlay, .lang-quick-overlay';
+    const anyOpen = [...document.querySelectorAll(selectors)].some(el => {
+        const d = el.style.display;
+        return d && d !== 'none';
+    });
+    document.body.classList.toggle('no-scroll', anyOpen);
+}
+
+function setupScrollLockObserver() {
+    const selectors = '.modal-overlay, .dialog-overlay, .drawer-overlay, .lang-quick-overlay';
+    const observer = new MutationObserver(updateBodyScrollLock);
+    document.querySelectorAll(selectors).forEach(el => {
+        observer.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
+    updateBodyScrollLock();
+}
+
 async function init() {
     applyTranslations();
     updateLangButtonLabel();
     restoreAddressUI();
+    setupScrollLockObserver();
     try {
         const res = await apiPost('auth/', {});
         syncPhoneFromBackend(res?.user);
