@@ -2660,16 +2660,17 @@ body {
     padding: 0 8px;
 }
 
-.od-illustration svg {
+.od-illustration img {
     width: 100%;
     max-width: 300px;
     height: auto;
+    display: block;
     animation: odFloat 4.5s ease-in-out infinite;
 }
 
 @keyframes odFloat {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+    50% { transform: translateY(-6px); }
 }
 
 .od-status {
