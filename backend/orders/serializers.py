@@ -21,10 +21,18 @@ class OrderCreateSerializer(serializers.Serializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     subtotal = serializers.IntegerField(read_only=True)
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'product_name', 'quantity', 'price', 'subtotal']
+        fields = ['id', 'product_name', 'quantity', 'price', 'subtotal', 'image']
+
+    def get_image(self, obj):
+        if obj.product and obj.product.image:
+            url = obj.product.image.url
+            request = self.context.get('request')
+            return request.build_absolute_uri(url) if request else url
+        return None
 
 
 class OrderSerializer(serializers.ModelSerializer):

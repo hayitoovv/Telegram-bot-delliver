@@ -809,6 +809,12 @@ function updateCartUI() {
         fab.style.display = 'none';
     }
 
+    // Active banner'ni cart holatiga qarab yuqoriga surish
+    const banner = document.getElementById('active-orders-banner');
+    if (banner && banner.style.display !== 'none') {
+        banner.classList.toggle('with-cart', count > 0);
+    }
+
     document.getElementById('cart-modal-total').textContent = formatPrice(total) + ' UZS';
 
     const checkoutBtn = document.getElementById('checkout-btn');
@@ -891,15 +897,30 @@ let ordersCurrentTab = 'active';
 
 const ORDER_STATUS_LABEL = {
     uz: {
-        pending: 'Kutilmoqda', accepted: 'Qabul qilindi', preparing: 'Tayyorlanmoqda',
+        pending: 'Yangi', accepted: 'Qabul qilindi', preparing: 'Tayyorlanmoqda',
         delivering: 'Yetkazilmoqda', delivered: 'Yetkazildi', cancelled: 'Bekor qilindi',
     },
     ru: {
-        pending: 'В ожидании', accepted: 'Принят', preparing: 'Готовится',
+        pending: 'Новый', accepted: 'Принят', preparing: 'Готовится',
         delivering: 'Доставляется', delivered: 'Доставлен', cancelled: 'Отменен',
     },
 };
+const ORDER_STATUS_DETAIL_LABEL = {
+    uz: {
+        pending: 'Admin javobi kutilmoqda', accepted: 'Qabul qilindi',
+        preparing: 'Tayyorlanmoqda', delivering: 'Yetkazilmoqda',
+        delivered: 'Yetkazildi', cancelled: 'Bekor qilindi',
+    },
+    ru: {
+        pending: 'Ожидание ответа админа', accepted: 'Принят',
+        preparing: 'Готовится', delivering: 'Доставляется',
+        delivered: 'Доставлен', cancelled: 'Отменен',
+    },
+};
 const ORDER_ACTIVE_STATUSES = ['pending', 'accepted', 'preparing', 'delivering'];
+const ORDER_STATUS_TO_STEP = {
+    pending: 1, accepted: 1, preparing: 2, delivering: 3, delivered: 4, cancelled: 1,
+};
 
 async function openOrdersList() {
     hideDrawer();
@@ -955,22 +976,122 @@ function renderOrdersList() {
     const statusLabels = ORDER_STATUS_LABEL[LANG] || ORDER_STATUS_LABEL.uz;
     const locale = LANG === 'ru' ? 'ru-RU' : 'uz-UZ';
     container.innerHTML = orders.map(o => {
-        const date = new Date(o.created_at).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+        const date = new Date(o.created_at);
+        const dateStr = date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+            + ', ' + date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
         const st = statusLabels[o.status] || o.status;
-        const addr = escapeHtml(o.address || '');
+        const names = (o.items || []).map(it => escapeHtml(it.product_name)).join(', ') || escapeHtml(o.address || '');
+        const thumbs = (o.items || []).slice(0, 4).map(it => {
+            if (it.image) {
+                return `<img class="order-card-thumb" src="${encodeURI(it.image)}" alt="" loading="lazy">`;
+            }
+            return `<div class="order-card-thumb">🍽️</div>`;
+        }).join('');
         return `
-        <div class="order-card">
-            <div class="order-card-row">
-                <span class="order-card-id">#${o.id}</span>
-                <span class="order-card-status status-${o.status}">${escapeHtml(st)}</span>
+        <div class="order-card clickable" onclick="openOrderDetail(${o.id})">
+            <div class="order-card-top">
+                <div class="order-card-main">
+                    <div class="order-card-names">${names}</div>
+                    <div class="order-card-meta" style="margin-top:6px;">${escapeHtml(dateStr)}</div>
+                </div>
+                <div class="order-card-right">
+                    <span class="order-card-price">${formatPrice(o.total_price)} UZS</span>
+                    <span class="order-card-status status-${o.status}">${escapeHtml(st)}</span>
+                </div>
             </div>
-            <div class="order-card-row">
-                <span class="order-card-meta">${date}</span>
-                <span class="order-card-price">${formatPrice(o.total_price)} UZS</span>
-            </div>
-            <div class="order-card-meta">${addr}</div>
+            <div class="order-card-items-preview">${thumbs}</div>
         </div>`;
     }).join('');
+}
+
+// Active banner + order detail ================================
+async function refreshActiveOrdersBanner() {
+    try {
+        const data = await apiPost('orders/', {});
+        ordersCache = data.orders || [];
+    } catch (e) {
+        return;
+    }
+    updateActiveOrdersBanner();
+}
+
+function updateActiveOrdersBanner() {
+    const banner = document.getElementById('active-orders-banner');
+    if (!banner) return;
+    const active = (ordersCache || []).filter(o => ORDER_ACTIVE_STATUSES.includes(o.status));
+    if (active.length > 0) {
+        document.getElementById('active-orders-count').textContent = active.length;
+        banner.style.display = 'flex';
+        banner.classList.toggle('with-cart', getCartCount() > 0);
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+function openOrderDetail(orderId) {
+    const order = (ordersCache || []).find(o => o.id === orderId);
+    if (!order) return;
+    renderOrderDetail(order);
+    document.getElementById('order-detail-modal').style.display = 'flex';
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function hideOrderDetail() {
+    document.getElementById('order-detail-modal').style.display = 'none';
+}
+
+function renderOrderDetail(order) {
+    const statusLabels = ORDER_STATUS_DETAIL_LABEL[LANG] || ORDER_STATUS_DETAIL_LABEL.uz;
+    const locale = LANG === 'ru' ? 'ru-RU' : 'uz-UZ';
+    const date = new Date(order.created_at);
+    const dateStr = date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+        + ', ' + date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+
+    document.getElementById('od-status').textContent = statusLabels[order.status] || order.status;
+    document.getElementById('od-info-id').textContent = '#' + order.id;
+    document.getElementById('od-info-date').textContent = dateStr;
+    document.getElementById('od-info-address').textContent = order.address || '-';
+    document.getElementById('od-info-total').textContent = formatPrice(order.total_price) + ' UZS';
+
+    // Progress steps
+    const activeStep = ORDER_STATUS_TO_STEP[order.status] || 1;
+    document.querySelectorAll('#od-progress .od-step').forEach(el => {
+        const step = parseInt(el.dataset.step, 10);
+        el.classList.remove('active', 'done');
+        if (step < activeStep) el.classList.add('done');
+        else if (step === activeStep) el.classList.add('active');
+    });
+    const lines = document.querySelectorAll('#od-progress .od-step-line');
+    lines.forEach((line, idx) => {
+        // line[idx] between step idx+1 and step idx+2
+        line.classList.toggle('done', (idx + 1) < activeStep);
+    });
+
+    // Items
+    const itemsContainer = document.getElementById('od-items-list');
+    itemsContainer.innerHTML = (order.items || []).map(it => {
+        const img = it.image
+            ? `<img class="od-item-img" src="${encodeURI(it.image)}" alt="" loading="lazy">`
+            : `<div class="od-item-img">🍽️</div>`;
+        return `
+        <div class="od-item">
+            ${img}
+            <div class="od-item-text">
+                <div class="od-item-name">${escapeHtml(it.product_name)}</div>
+                <div class="od-item-meta">${it.quantity} x ${formatPrice(it.price)} UZS</div>
+            </div>
+            <div class="od-item-price">${formatPrice(it.subtotal || it.price * it.quantity)} UZS</div>
+        </div>`;
+    }).join('');
+}
+
+function orderPay() {
+    showToast(LANG === 'ru' ? 'Скоро будет' : "Tez orada qo'shiladi");
+}
+
+function orderHelp() {
+    hideOrderDetail();
+    openChat();
 }
 
 // My addresses page ============================================
@@ -1692,6 +1813,8 @@ async function doSubmitOrder() {
         renderAllCategoryProducts();
         showSuccessModal();
         tg.HapticFeedback?.notificationOccurred('success');
+        // Banner'ni yangilash
+        refreshActiveOrdersBanner();
     } catch (e) {
         alert(e.message || txt('error_occurred'));
         tg.HapticFeedback?.notificationOccurred('error');
@@ -1786,6 +1909,7 @@ async function init() {
         console.error('Auth xato:', e);
     }
     await loadCategories();
+    refreshActiveOrdersBanner();
 }
 
 function syncPhoneFromBackend(backendUser) {
