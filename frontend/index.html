@@ -506,7 +506,7 @@
         </div>
     </div>
 
-    <!-- Order detail page -->
+    <!-- Order detail page (status) -->
     <div class="modal-overlay" id="order-detail-modal" style="display:none;">
         <div class="modal modal-full side-page">
             <div class="side-page-header">
@@ -514,9 +514,9 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
                 <h2 class="side-page-title">Buyurtma</h2>
-                <div class="side-page-spacer">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;color:#6B7280;"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
-                </div>
+                <button class="sheet-back-icon" onclick="openOrderReceipt()" aria-label="Chek">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+                </button>
             </div>
             <div class="side-page-body order-detail-body">
                 <div class="od-illustration">
@@ -571,34 +571,70 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="od-info">
-                    <div class="od-info-row">
-                        <span class="od-info-label">ID</span>
-                        <span class="od-info-value" id="od-info-id">#-</span>
-                    </div>
-                    <div class="od-info-row">
-                        <span class="od-info-label">Sana</span>
-                        <span class="od-info-value" id="od-info-date">-</span>
-                    </div>
-                    <div class="od-info-row">
-                        <span class="od-info-label">Manzil</span>
-                        <span class="od-info-value" id="od-info-address">-</span>
-                    </div>
-                    <div class="od-info-row">
-                        <span class="od-info-label">Jami</span>
-                        <span class="od-info-value od-info-price" id="od-info-total">-</span>
-                    </div>
-                </div>
-
-                <div class="od-items-wrap">
-                    <div class="od-items-title">Mahsulotlar</div>
-                    <div class="od-items-list" id="od-items-list"></div>
-                </div>
             </div>
             <div class="side-page-bottom od-bottom">
                 <button class="btn-outline-purple" onclick="orderPay()">To'lovga o'tish</button>
                 <button class="btn-primary btn-purple" onclick="orderHelp()">Menga buyurtma bilan yordam kerak</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order receipt page (details) -->
+    <div class="modal-overlay" id="order-receipt-modal" style="display:none;">
+        <div class="modal modal-full side-page">
+            <div class="side-page-header">
+                <button class="sheet-back-icon" onclick="hideOrderReceipt()" aria-label="Orqaga">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h2 class="side-page-title" id="or-title">ID-000000</h2>
+                <div class="side-page-spacer"></div>
+            </div>
+            <div class="side-page-body or-body">
+                <div class="or-top-row">
+                    <div class="or-id-info">
+                        <div class="or-id" id="or-id">ID-000000</div>
+                        <div class="or-date" id="or-date">-</div>
+                    </div>
+                    <span class="or-status-badge" id="or-status-badge">Yangi</span>
+                </div>
+
+                <div class="or-section">
+                    <div class="or-label">Yetkazish manzili</div>
+                    <div class="or-address" id="or-address">-</div>
+                </div>
+
+                <div class="or-divider"></div>
+
+                <div class="or-items-title">Buyurtma</div>
+                <div class="or-items" id="or-items"></div>
+
+                <div class="or-divider-dashed"></div>
+
+                <div class="or-summary">
+                    <div class="or-summary-row">
+                        <span>Yetkazib berish</span>
+                        <span id="or-delivery-fee">0 UZS</span>
+                    </div>
+                    <div class="or-summary-row or-summary-total">
+                        <span>Umumiy</span>
+                        <span id="or-total">0 UZS</span>
+                    </div>
+                </div>
+            </div>
+            <div class="side-page-bottom">
+                <button class="btn-primary btn-purple" id="or-cancel-btn" onclick="confirmCancelOrder()">Buyurtmani bekor qilish</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel order confirm dialog -->
+    <div class="dialog-overlay" id="cancel-order-dialog" style="display:none;">
+        <div class="dialog-box">
+            <div class="dialog-icon">⚠️</div>
+            <p class="dialog-text">Buyurtmani bekor qilishni tasdiqlaysizmi?</p>
+            <div class="dialog-actions">
+                <button class="dialog-btn dialog-btn-cancel" onclick="hideCancelOrderDialog()">Yo'q</button>
+                <button class="dialog-btn dialog-btn-logout" onclick="doCancelOrder()">Ha, bekor qilish</button>
             </div>
         </div>
     </div>

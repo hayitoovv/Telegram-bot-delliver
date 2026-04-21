@@ -114,4 +114,44 @@ class OrderListView(APIView):
             return Response({'orders': []})
 
         orders = Order.objects.filter(user=user)[:20]
-        return Response({'orders': OrderSerializer(orders, many=True).data})
+        return Response({
+            'orders': OrderSerializer(orders, many=True, context={'request': request}).data
+        })
+
+
+class OrderCancelView(APIView):
+    """Foydalanuvchi o'z buyurtmasini bekor qiladi."""
+
+    def post(self, request):
+        init_data = request.data.get('initData', '')
+        user_data, reason = verify_telegram_data_detailed(init_data)
+        if user_data is None:
+            return _auth_error_response(reason)
+
+        try:
+            user = TelegramUser.objects.get(telegram_id=user_data['id'])
+        except TelegramUser.DoesNotExist:
+            return Response({'error': 'Foydalanuvchi topilmadi'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order_id = request.data.get('order_id')
+        if not order_id:
+            return Response({'error': 'order_id kerak'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order = Order.objects.get(id=order_id, user=user)
+        except Order.DoesNotExist:
+            return Response({'error': 'Buyurtma topilmadi'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Faqat pending/accepted'ni bekor qilish mumkin
+        if order.status not in (Order.Status.PENDING, Order.Status.ACCEPTED):
+            return Response(
+                {'error': "Bu buyurtmani bekor qilib bo'lmaydi"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        order.status = Order.Status.CANCELLED
+        order.save(update_fields=['status'])
+        return Response({
+            'ok': True,
+            'order': OrderSerializer(order, context={'request': request}).data,
+        })

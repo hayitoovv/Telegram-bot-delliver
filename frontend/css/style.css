@@ -2862,6 +2862,171 @@ body {
     border-color: #A78BFA;
 }
 
+/* ==========================================================
+   Order receipt page
+   ========================================================== */
+.or-body {
+    padding-bottom: 120px;
+}
+
+.or-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 4px 14px;
+    border-bottom: 1px solid #F3F4F6;
+    margin-bottom: 18px;
+}
+
+.or-id {
+    font-size: 14px;
+    color: #6B7280;
+    font-weight: 500;
+    margin-bottom: 3px;
+}
+
+.or-date {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.or-status-badge {
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.or-status-badge.status-pending { background: #FEF3C7; color: #92400E; }
+.or-status-badge.status-accepted { background: #D1FAE5; color: #065F46; }
+.or-status-badge.status-preparing { background: #DBEAFE; color: #1E40AF; }
+.or-status-badge.status-delivering { background: #E0E7FF; color: #3730A3; }
+.or-status-badge.status-delivered { background: #D1FAE5; color: #065F46; }
+.or-status-badge.status-cancelled { background: #FEE2E2; color: #991B1B; }
+
+.or-section {
+    padding: 0 4px 14px;
+}
+
+.or-label {
+    font-size: 13px;
+    color: #9CA3AF;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.or-address {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.4;
+}
+
+.or-divider {
+    height: 1px;
+    background: #F3F4F6;
+    margin: 2px 0 18px;
+}
+
+.or-divider-dashed {
+    height: 0;
+    border-top: 1px dashed #D1D5DB;
+    margin: 14px 0;
+}
+
+.or-items-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 4px 12px;
+}
+
+.or-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.or-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+.or-item:last-child { border-bottom: none; }
+
+.or-item-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: #F3F4F6;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.or-item-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.or-item-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.or-item-qty {
+    font-size: 13px;
+    color: #9CA3AF;
+    margin-top: 2px;
+}
+
+.or-item-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    flex-shrink: 0;
+}
+
+.or-summary {
+    padding: 0 4px;
+}
+
+.or-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 15px;
+    color: #111827;
+}
+
+.or-summary-total {
+    padding: 14px 12px;
+    margin-top: 6px;
+    background: #F5F3FF;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 16px;
+}
+
+.or-summary-total span:last-child {
+    color: #7C3AED;
+    font-size: 17px;
+}
+
 /* Updated order card for list */
 .order-card.clickable {
     cursor: pointer;
