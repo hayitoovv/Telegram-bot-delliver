@@ -1194,10 +1194,16 @@ function setUserPhone(phone) {
     localStorage.setItem('user_data', JSON.stringify({ tg_id: tgId, phone }));
 }
 
+let pendingAfterPhone = null;
+
 function openChat() {
     if (getUserPhone()) {
         showChatModal();
     } else {
+        pendingAfterPhone = () => {
+            showToast(txt('register_success'));
+            setTimeout(showChatModal, 500);
+        };
         showRegister();
     }
 }
@@ -1220,8 +1226,9 @@ async function submitPhone() {
     const wrap = document.getElementById('phone-wrap');
 
     if (raw.length !== 9) {
-        errEl.textContent = txt('phone_error');
-        errEl.style.display = 'block';
+        const spanEl = errEl.querySelector('span') || errEl;
+        spanEl.textContent = txt('phone_error');
+        errEl.style.display = 'flex';
         wrap.classList.add('error');
         tg.HapticFeedback?.notificationOccurred('error');
         return;
@@ -1237,9 +1244,15 @@ async function submitPhone() {
 
     setUserPhone(fullPhone);
     hideRegister();
-    showToast(txt('register_success'));
-    setTimeout(showChatModal, 700);
     tg.HapticFeedback?.notificationOccurred('success');
+
+    if (pendingAfterPhone) {
+        const cb = pendingAfterPhone;
+        pendingAfterPhone = null;
+        cb();
+    } else {
+        showToast(txt('register_success'));
+    }
 }
 
 function showToast(text) {
@@ -1598,6 +1611,17 @@ async function submitOrder() {
         return;
     }
 
+    // Telefon raqam kiritilmagan bo'lsa — avval so'rash
+    if (!getUserPhone()) {
+        pendingAfterPhone = () => doSubmitOrder();
+        showRegister();
+        return;
+    }
+
+    await doSubmitOrder();
+}
+
+async function doSubmitOrder() {
     const comment = document.getElementById('comment-input').value.trim();
     const entrance = document.getElementById('checkout-entrance').value.trim();
     const floor = document.getElementById('checkout-floor').value.trim();
@@ -1633,7 +1657,7 @@ async function submitOrder() {
         cart = {};
         updateCartUI();
         renderAllCategoryProducts();
-        document.getElementById('success-modal').style.display = 'flex';
+        showSuccessModal();
         tg.HapticFeedback?.notificationOccurred('success');
     } catch (e) {
         alert(e.message || txt('error_occurred'));
@@ -1642,6 +1666,23 @@ async function submitOrder() {
         submitBtn.disabled = false;
         submitBtn.textContent = txt('confirm_order');
     }
+}
+
+function showSuccessModal() {
+    const modal = document.getElementById('success-modal');
+    modal.style.display = 'flex';
+    // Animatsiyalar qayta ishga tushishi uchun
+    const inner = modal.querySelector('.modal-success');
+    if (inner) {
+        inner.style.animation = 'none';
+        // force reflow
+        void inner.offsetWidth;
+        inner.style.animation = '';
+    }
+}
+
+function closeSuccessModal() {
+    document.getElementById('success-modal').style.display = 'none';
 }
 
 // ============================================

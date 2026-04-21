@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
-    <link rel="stylesheet" href="/app/css/style.css?v=43">
+    <link rel="stylesheet" href="/app/css/style.css?v=44">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         (function() {
@@ -411,10 +411,24 @@
     <!-- Success modal -->
     <div class="modal-overlay" id="success-modal" style="display: none;">
         <div class="modal modal-success">
-            <div class="success-icon">✅</div>
-            <h2 data-i18n="order_success_title">Buyurtma qabul qilindi!</h2>
-            <p data-i18n="order_success_text">Buyurtmangiz tez orada tayyorlanadi.</p>
-            <button class="btn-primary" onclick="closeApp()" data-i18n="close">Yopish</button>
+            <div class="success-animation-wrap">
+                <div class="success-ripple"></div>
+                <div class="success-ripple success-ripple-2"></div>
+                <div class="success-circle">
+                    <svg class="success-check-svg" viewBox="0 0 52 52" aria-hidden="true">
+                        <path class="success-check-path" fill="none" d="M14 27 l8 8 l16 -17"/>
+                    </svg>
+                </div>
+                <span class="success-spark success-spark-1">✨</span>
+                <span class="success-spark success-spark-2">🎉</span>
+                <span class="success-spark success-spark-3">⭐</span>
+            </div>
+            <h2 class="success-title" data-i18n="order_success_title">Buyurtmangiz qabul qilindi!</h2>
+            <p class="success-text" data-i18n="order_success_text">Tez orada siz bilan bog'lanamiz</p>
+            <button class="btn-primary success-close-btn" onclick="closeSuccessModal()" data-i18n="close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span data-i18n="close">Yopish</span>
+            </button>
         </div>
     </div>
 
@@ -632,6 +646,6 @@
         </div>
     </div>
 
-    <script src="/app/js/app.js?v=39"></script>
+    <script src="/app/js/app.js?v=40"></script>
 </body>
 </html>

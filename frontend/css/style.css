@@ -2397,21 +2397,164 @@ body {
 /* Success */
 .modal-success {
     text-align: center;
-    padding: 40px 20px;
-    border-radius: 16px;
+    padding: 36px 28px 28px;
+    border-radius: 24px;
     margin: auto 16px;
+    max-width: 340px;
+    background: #ffffff;
+    animation: successModalIn 0.42s cubic-bezier(0.22, 1.3, 0.36, 1);
 }
 
-.success-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
+@keyframes successModalIn {
+    from { opacity: 0; transform: scale(0.7) translateY(24px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-.modal-success h2 { margin-bottom: 8px; }
+.success-animation-wrap {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    margin: 4px auto 22px;
+}
 
-.modal-success p {
-    color: var(--tg-theme-hint-color);
-    margin-bottom: 24px;
+.success-circle {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #8BC34A 0%, #2E7D32 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 14px 30px rgba(46, 125, 50, 0.35);
+    animation: successCirclePop 0.6s cubic-bezier(0.22, 1.5, 0.36, 1);
+    transform-origin: center;
+    z-index: 2;
+}
+
+@keyframes successCirclePop {
+    0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+    60% { transform: scale(1.1) rotate(0); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.success-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2.5px solid #8BC34A;
+    opacity: 0;
+    animation: successRipple 1.4s 0.3s ease-out 2;
+    z-index: 1;
+}
+
+.success-ripple-2 {
+    animation-delay: 0.8s;
+}
+
+@keyframes successRipple {
+    0% { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(1.9); opacity: 0; }
+}
+
+.success-check-svg {
+    width: 64px;
+    height: 64px;
+}
+
+.success-check-path {
+    stroke: #ffffff;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 50;
+    stroke-dashoffset: 50;
+    animation: successCheck 0.38s 0.5s cubic-bezier(0.55, 0, 0.1, 1) forwards;
+}
+
+@keyframes successCheck {
+    to { stroke-dashoffset: 0; }
+}
+
+.success-spark {
+    position: absolute;
+    font-size: 20px;
+    opacity: 0;
+    z-index: 3;
+    pointer-events: none;
+    animation: successSpark 1.2s 0.55s cubic-bezier(0.3, 0.1, 0.2, 1) forwards;
+}
+
+.success-spark-1 {
+    top: -8px;
+    left: -4px;
+}
+
+.success-spark-2 {
+    top: 0;
+    right: -10px;
+    animation-delay: 0.7s;
+}
+
+.success-spark-3 {
+    bottom: -6px;
+    right: 8px;
+    animation-delay: 0.85s;
+}
+
+@keyframes successSpark {
+    0% { opacity: 0; transform: scale(0.3) translate(0, 10px); }
+    40% { opacity: 1; transform: scale(1) translate(-6px, -10px) rotate(8deg); }
+    100% { opacity: 0; transform: scale(0.9) translate(-16px, -26px) rotate(-6deg); }
+}
+
+.success-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 8px;
+    animation: successTextIn 0.5s 0.55s both ease-out;
+}
+
+.success-text {
+    font-size: 14.5px;
+    color: #6B7280;
+    margin: 0 0 24px;
+    line-height: 1.5;
+    animation: successTextIn 0.5s 0.7s both ease-out;
+}
+
+@keyframes successTextIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.success-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background: linear-gradient(135deg, #8BC34A 0%, #2E7D32 100%);
+    border: none;
+    padding: 15px 20px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    box-shadow: 0 10px 22px rgba(46, 125, 50, 0.3);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+    animation: successTextIn 0.5s 0.85s both ease-out;
+}
+
+.success-close-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 6px 14px rgba(46, 125, 50, 0.28);
+}
+
+.success-close-btn svg {
+    width: 20px;
+    height: 20px;
 }
 
 /* Loading */
