@@ -1214,6 +1214,12 @@ function showRegister() {
 }
 
 function hideRegister() {
+    // Foydalanuvchi telefon kiritmasdan orqaga qaytgan — pending callback'ni bekor qilish
+    pendingAfterPhone = null;
+    closeRegisterModal();
+}
+
+function closeRegisterModal() {
     document.getElementById('register-modal').style.display = 'none';
     document.getElementById('phone-error').style.display = 'none';
     document.getElementById('phone-wrap').classList.remove('error');
@@ -1243,7 +1249,7 @@ async function submitPhone() {
     }
 
     setUserPhone(fullPhone);
-    hideRegister();
+    closeRegisterModal();
     tg.HapticFeedback?.notificationOccurred('success');
 
     if (pendingAfterPhone) {
@@ -1747,11 +1753,30 @@ async function init() {
     updateLangButtonLabel();
     restoreAddressUI();
     try {
-        await apiPost('auth/', {});
+        const res = await apiPost('auth/', {});
+        syncPhoneFromBackend(res?.user);
     } catch (e) {
         console.error('Auth xato:', e);
     }
     await loadCategories();
+}
+
+function syncPhoneFromBackend(backendUser) {
+    const tgId = currentTgId();
+    if (!tgId) return;
+    const backendPhone = (backendUser && backendUser.phone) || '';
+    if (backendPhone) {
+        // Backend telefon bor — localStorage'ni yangilash
+        localStorage.setItem('user_data', JSON.stringify({ tg_id: tgId, phone: backendPhone }));
+    } else {
+        // Backend telefon yo'q — eski mahalliy ma'lumotni tozalash
+        try {
+            const data = JSON.parse(localStorage.getItem('user_data') || '{}');
+            if (data.tg_id === tgId) {
+                localStorage.removeItem('user_data');
+            }
+        } catch {}
+    }
 }
 
 init();
