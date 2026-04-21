@@ -1028,9 +1028,12 @@ function updateActiveOrdersBanner() {
     }
 }
 
+let currentDetailOrderId = null;
+
 function openOrderDetail(orderId) {
     const order = (ordersCache || []).find(o => o.id === orderId);
     if (!order) return;
+    currentDetailOrderId = orderId;
     renderOrderDetail(order);
     document.getElementById('order-detail-modal').style.display = 'flex';
     tg.HapticFeedback?.impactOccurred('light');
@@ -1042,20 +1045,13 @@ function hideOrderDetail() {
 
 function renderOrderDetail(order) {
     const statusLabels = ORDER_STATUS_DETAIL_LABEL[LANG] || ORDER_STATUS_DETAIL_LABEL.uz;
-    const locale = LANG === 'ru' ? 'ru-RU' : 'uz-UZ';
-    const date = new Date(order.created_at);
-    const dateStr = date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
-        + ', ' + date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-
-    document.getElementById('od-status').textContent = statusLabels[order.status] || order.status;
-    document.getElementById('od-info-id').textContent = '#' + order.id;
-    document.getElementById('od-info-date').textContent = dateStr;
-    document.getElementById('od-info-address').textContent = order.address || '-';
-    document.getElementById('od-info-total').textContent = formatPrice(order.total_price) + ' UZS';
+    const statusEl = document.getElementById('od-status');
+    if (statusEl) statusEl.textContent = statusLabels[order.status] || order.status;
 
     // Progress steps
     const activeStep = ORDER_STATUS_TO_STEP[order.status] || 1;
-    document.querySelectorAll('#od-progress .od-step').forEach(el => {
+    const steps = document.querySelectorAll('#od-progress .od-step');
+    steps.forEach(el => {
         const step = parseInt(el.dataset.step, 10);
         el.classList.remove('active', 'done');
         if (step < activeStep) el.classList.add('done');
@@ -1063,26 +1059,8 @@ function renderOrderDetail(order) {
     });
     const lines = document.querySelectorAll('#od-progress .od-step-line');
     lines.forEach((line, idx) => {
-        // line[idx] between step idx+1 and step idx+2
         line.classList.toggle('done', (idx + 1) < activeStep);
     });
-
-    // Items
-    const itemsContainer = document.getElementById('od-items-list');
-    itemsContainer.innerHTML = (order.items || []).map(it => {
-        const img = it.image
-            ? `<img class="od-item-img" src="${encodeURI(it.image)}" alt="" loading="lazy">`
-            : `<div class="od-item-img">🍽️</div>`;
-        return `
-        <div class="od-item">
-            ${img}
-            <div class="od-item-text">
-                <div class="od-item-name">${escapeHtml(it.product_name)}</div>
-                <div class="od-item-meta">${it.quantity} x ${formatPrice(it.price)} UZS</div>
-            </div>
-            <div class="od-item-price">${formatPrice(it.subtotal || it.price * it.quantity)} UZS</div>
-        </div>`;
-    }).join('');
 }
 
 function orderPay() {
@@ -1092,6 +1070,106 @@ function orderPay() {
 function orderHelp() {
     hideOrderDetail();
     openChat();
+}
+
+// Order receipt page ==========================================
+function openOrderReceipt() {
+    if (currentDetailOrderId == null) return;
+    const order = (ordersCache || []).find(o => o.id === currentDetailOrderId);
+    if (!order) return;
+    renderOrderReceipt(order);
+    document.getElementById('order-receipt-modal').style.display = 'flex';
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function hideOrderReceipt() {
+    document.getElementById('order-receipt-modal').style.display = 'none';
+}
+
+function renderOrderReceipt(order) {
+    const statusLabels = ORDER_STATUS_LABEL[LANG] || ORDER_STATUS_LABEL.uz;
+    const locale = LANG === 'ru' ? 'ru-RU' : 'uz-UZ';
+    const date = new Date(order.created_at);
+    const dateStr = date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+        + ', ' + date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+
+    const idStr = 'ID-' + String(order.id).padStart(6, '0');
+    document.getElementById('or-title').textContent = idStr;
+    document.getElementById('or-id').textContent = idStr;
+    document.getElementById('or-date').textContent = dateStr;
+    document.getElementById('or-address').textContent = order.address || '-';
+
+    const badge = document.getElementById('or-status-badge');
+    badge.textContent = statusLabels[order.status] || order.status;
+    badge.className = 'or-status-badge status-' + order.status;
+
+    document.getElementById('or-delivery-fee').textContent = '0 UZS';
+    document.getElementById('or-total').textContent = formatPrice(order.total_price) + ' UZS';
+
+    const itemsContainer = document.getElementById('or-items');
+    const unitLabel = LANG === 'ru' ? 'шт' : 'dona';
+    itemsContainer.innerHTML = (order.items || []).map(it => {
+        const img = it.image
+            ? `<img class="or-item-img" src="${encodeURI(it.image)}" alt="" loading="lazy">`
+            : `<div class="or-item-img">🍽️</div>`;
+        const subtotal = it.subtotal || it.price * it.quantity;
+        return `
+        <div class="or-item">
+            ${img}
+            <div class="or-item-text">
+                <div class="or-item-name">${escapeHtml(it.product_name)}</div>
+                <div class="or-item-qty">${it.quantity} ${unitLabel}</div>
+            </div>
+            <div class="or-item-price">${formatPrice(subtotal)} UZS</div>
+        </div>`;
+    }).join('');
+
+    // Cancel tugmasi faqat pending/accepted'da ko'rinadi
+    const cancelBtn = document.getElementById('or-cancel-btn');
+    const canCancel = ['pending', 'accepted'].includes(order.status);
+    cancelBtn.style.display = canCancel ? 'flex' : 'none';
+}
+
+function confirmCancelOrder() {
+    document.getElementById('cancel-order-dialog').style.display = 'flex';
+    tg.HapticFeedback?.impactOccurred('light');
+}
+
+function hideCancelOrderDialog() {
+    document.getElementById('cancel-order-dialog').style.display = 'none';
+}
+
+async function doCancelOrder() {
+    if (currentDetailOrderId == null) {
+        hideCancelOrderDialog();
+        return;
+    }
+    const btn = document.querySelector('#cancel-order-dialog .dialog-btn-logout');
+    if (btn) btn.disabled = true;
+    try {
+        const res = await apiPost('order/cancel/', { order_id: currentDetailOrderId });
+        // Lokal kesh'da statusni yangilash
+        if (ordersCache) {
+            const idx = ordersCache.findIndex(o => o.id === currentDetailOrderId);
+            if (idx !== -1) {
+                ordersCache[idx].status = 'cancelled';
+                if (res?.order) ordersCache[idx] = res.order;
+            }
+        }
+        hideCancelOrderDialog();
+        hideOrderReceipt();
+        hideOrderDetail();
+        renderOrdersList();
+        updateActiveOrdersBanner();
+        tg.HapticFeedback?.notificationOccurred('success');
+        showToast(LANG === 'ru' ? 'Заказ отменен' : 'Buyurtma bekor qilindi');
+    } catch (e) {
+        console.error('Cancel order xato:', e);
+        tg.HapticFeedback?.notificationOccurred('error');
+        showToast((LANG === 'ru' ? 'Ошибка' : 'Xato') + ': ' + (e.message || ''));
+    } finally {
+        if (btn) btn.disabled = false;
+    }
 }
 
 // My addresses page ============================================
