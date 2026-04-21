@@ -2661,8 +2661,9 @@ body {
 
 .od-illustration svg {
     width: 100%;
-    max-width: 260px;
+    max-width: 280px;
     height: auto;
+    filter: drop-shadow(0 8px 24px rgba(46, 125, 50, 0.12));
 }
 
 .od-status {

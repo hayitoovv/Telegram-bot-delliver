@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
-    <link rel="stylesheet" href="/app/css/style.css?v=48">
+    <link rel="stylesheet" href="/app/css/style.css?v=49">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         (function() {
@@ -520,29 +520,152 @@
             </div>
             <div class="side-page-body order-detail-body">
                 <div class="od-illustration">
-                    <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="100" cy="90" r="60" fill="#F1F7E5"/>
-                        <rect x="45" y="45" width="60" height="78" rx="6" fill="#ffffff" stroke="#A7D065" stroke-width="1.5"/>
-                        <rect x="52" y="42" width="22" height="10" rx="2" fill="#8BC34A"/>
-                        <circle cx="60" cy="64" r="3.5" fill="#22C55E"/>
-                        <line x1="68" y1="64" x2="95" y2="64" stroke="#D1D5DB" stroke-width="2" stroke-linecap="round"/>
-                        <circle cx="60" cy="78" r="3.5" fill="#EF4444"/>
-                        <line x1="68" y1="78" x2="95" y2="78" stroke="#D1D5DB" stroke-width="2" stroke-linecap="round"/>
-                        <circle cx="60" cy="92" r="3.5" fill="#F59E0B"/>
-                        <line x1="68" y1="92" x2="95" y2="92" stroke="#D1D5DB" stroke-width="2" stroke-linecap="round"/>
-                        <line x1="55" y1="106" x2="95" y2="106" stroke="#E5E7EB" stroke-width="2" stroke-linecap="round"/>
-                        <circle cx="132" cy="55" r="14" fill="#22C55E"/>
-                        <path d="M126 55 L130 59 L138 51" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        <circle cx="150" cy="88" r="10" fill="#FCD34D"/>
-                        <path d="M145 85 q5 -8 10 0" stroke="#92400E" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-                        <circle cx="147" cy="85" r="1.2" fill="#92400E"/>
-                        <circle cx="153" cy="85" r="1.2" fill="#92400E"/>
-                        <rect x="135" y="96" width="30" height="32" rx="4" fill="#2E7D32"/>
-                        <rect x="140" y="128" width="8" height="16" rx="2" fill="#1B5E20"/>
-                        <rect x="152" y="128" width="8" height="16" rx="2" fill="#1B5E20"/>
-                        <path d="M155 100 l8 -3 l2 8 l-8 3 Z" fill="#FCA5A5"/>
-                        <path d="M35 130 q5 -10 15 -8 q3 2 5 8" stroke="#8BC34A" stroke-width="2" fill="none" stroke-linecap="round"/>
-                        <circle cx="42" cy="128" r="3" fill="#A7D065"/>
+                    <svg viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="bgCircle" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stop-color="#F1F7E5"/>
+                                <stop offset="100%" stop-color="#FAFFF0"/>
+                            </linearGradient>
+                            <linearGradient id="shirtGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#8BC34A"/>
+                                <stop offset="100%" stop-color="#2E7D32"/>
+                            </linearGradient>
+                            <linearGradient id="pantsGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#60A5FA"/>
+                                <stop offset="100%" stop-color="#3B82F6"/>
+                            </linearGradient>
+                            <linearGradient id="clipGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#A7D065"/>
+                                <stop offset="100%" stop-color="#2E7D32"/>
+                            </linearGradient>
+                            <linearGradient id="badgeGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#34D399"/>
+                                <stop offset="100%" stop-color="#059669"/>
+                            </linearGradient>
+                            <linearGradient id="pencilGrad" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="#FCA5A5"/>
+                                <stop offset="100%" stop-color="#F87171"/>
+                            </linearGradient>
+                            <radialGradient id="cheek" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#FCA5A5" stop-opacity="0.7"/>
+                                <stop offset="100%" stop-color="#FCA5A5" stop-opacity="0"/>
+                            </radialGradient>
+                            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#1B5E20" flood-opacity="0.18"/>
+                            </filter>
+                        </defs>
+
+                        <!-- Background circle -->
+                        <ellipse cx="150" cy="130" rx="130" ry="72" fill="url(#bgCircle)"/>
+
+                        <!-- Floating particles -->
+                        <circle cx="52" cy="60" r="3" fill="#8BC34A" opacity="0.4"/>
+                        <circle cx="250" cy="50" r="2.5" fill="#34D399" opacity="0.5"/>
+                        <circle cx="278" cy="120" r="3.5" fill="#A7D065" opacity="0.35"/>
+                        <path d="M262 80 l4 0 M264 78 l0 4" stroke="#8BC34A" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+                        <path d="M40 130 l3 0 M41.5 128.5 l0 3" stroke="#22C55E" stroke-width="1.3" stroke-linecap="round" opacity="0.5"/>
+
+                        <!-- Plant decoration (bottom-left) -->
+                        <g opacity="0.9">
+                            <path d="M42 205 q2 -22 18 -26" stroke="#4ADE80" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+                            <ellipse cx="58" cy="180" rx="6" ry="9" fill="#22C55E" transform="rotate(-20 58 180)"/>
+                            <ellipse cx="48" cy="188" rx="5" ry="8" fill="#4ADE80" transform="rotate(25 48 188)"/>
+                            <ellipse cx="66" cy="172" rx="4.5" ry="7" fill="#22C55E" transform="rotate(-45 66 172)"/>
+                            <circle cx="62" cy="168" r="2.5" fill="#8BC34A"/>
+                            <circle cx="54" cy="174" r="2" fill="#A7D065"/>
+                        </g>
+
+                        <!-- Clipboard (with shadow) -->
+                        <g filter="url(#softShadow)">
+                            <rect x="55" y="58" width="95" height="118" rx="10" fill="#FFFFFF"/>
+                            <rect x="55" y="58" width="95" height="118" rx="10" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+                            <!-- Clip -->
+                            <rect x="82" y="48" width="41" height="22" rx="4" fill="url(#clipGrad)"/>
+                            <rect x="90" y="54" width="25" height="10" rx="2" fill="#F1F7E5" opacity="0.5"/>
+                            <!-- Header bar -->
+                            <rect x="66" y="80" width="74" height="10" rx="3" fill="#DBEAFE"/>
+                            <!-- Bullet 1 (green check) -->
+                            <circle cx="76" cy="108" r="6" fill="#22C55E"/>
+                            <path d="M72.5 108 L75 110.5 L80 105" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                            <line x1="87" y1="108" x2="138" y2="108" stroke="#E5E7EB" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="87" y1="114" x2="120" y2="114" stroke="#F3F4F6" stroke-width="2" stroke-linecap="round"/>
+                            <!-- Bullet 2 (red x) -->
+                            <circle cx="76" cy="132" r="6" fill="#EF4444"/>
+                            <path d="M73.5 129.5 L78.5 134.5 M78.5 129.5 L73.5 134.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+                            <line x1="87" y1="132" x2="138" y2="132" stroke="#E5E7EB" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="87" y1="138" x2="115" y2="138" stroke="#F3F4F6" stroke-width="2" stroke-linecap="round"/>
+                            <!-- Bullet 3 (yellow dot) -->
+                            <circle cx="76" cy="156" r="6" fill="#F59E0B"/>
+                            <circle cx="76" cy="156" r="2.5" fill="#ffffff"/>
+                            <line x1="87" y1="156" x2="138" y2="156" stroke="#E5E7EB" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="87" y1="162" x2="125" y2="162" stroke="#F3F4F6" stroke-width="2" stroke-linecap="round"/>
+                        </g>
+
+                        <!-- Check badge (floating right of clipboard) -->
+                        <g filter="url(#softShadow)">
+                            <circle cx="168" cy="65" r="22" fill="url(#badgeGrad)"/>
+                            <circle cx="168" cy="65" r="22" fill="none" stroke="#ffffff" stroke-width="3.5"/>
+                            <path d="M157 65 L165 73 L180 56" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </g>
+
+                        <!-- Character -->
+                        <g>
+                            <!-- Left arm (behind body, waving) -->
+                            <path d="M180 130 q-8 -12 -2 -28 q3 -5 8 -4" stroke="url(#shirtGrad)" stroke-width="11" stroke-linecap="round" fill="none"/>
+                            <circle cx="188" cy="97" r="6.5" fill="#FCD34D"/>
+
+                            <!-- Head -->
+                            <circle cx="222" cy="92" r="19" fill="#FCD34D"/>
+                            <!-- Cheek blush -->
+                            <circle cx="215" cy="98" r="3.5" fill="url(#cheek)"/>
+                            <circle cx="229" cy="98" r="3.5" fill="url(#cheek)"/>
+                            <!-- Hair -->
+                            <path d="M205 87 q-2 -14 8 -18 q4 -2 8 0 q3 -4 10 -3 q10 2 11 12 q1 5 -1 8 q-3 -5 -10 -6 q-4 3 -9 2 q-6 0 -10 -1 q-5 1 -7 6z" fill="#F59E0B"/>
+                            <path d="M235 88 q5 -2 6 3 q-3 2 -6 0 z" fill="#FBBF24"/>
+                            <!-- Eyes -->
+                            <circle cx="217" cy="92" r="1.6" fill="#1F2937"/>
+                            <circle cx="230" cy="92" r="1.6" fill="#1F2937"/>
+                            <!-- Eye highlight -->
+                            <circle cx="217.5" cy="91.3" r="0.5" fill="#ffffff"/>
+                            <circle cx="230.5" cy="91.3" r="0.5" fill="#ffffff"/>
+                            <!-- Mouth -->
+                            <path d="M218 103 q4 3 8 0" stroke="#1F2937" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+
+                            <!-- Neck -->
+                            <rect x="215" y="108" width="14" height="8" fill="#FCD34D"/>
+
+                            <!-- T-shirt body -->
+                            <path d="M198 118 q2 -4 7 -5 l34 0 q5 1 7 5 l-2 44 l-44 0 z" fill="url(#shirtGrad)"/>
+                            <!-- Collar -->
+                            <path d="M215 115 q7 5 14 0 l-3 8 q-4 2 -8 0 z" fill="#1B5E20" opacity="0.35"/>
+                            <!-- T-shirt sleeves -->
+                            <rect x="195" y="118" width="9" height="17" rx="3" fill="#2E7D32"/>
+
+                            <!-- Right arm holding pencil -->
+                            <path d="M240 128 q12 -6 20 -18" stroke="url(#shirtGrad)" stroke-width="9" stroke-linecap="round" fill="none"/>
+                            <!-- Right hand -->
+                            <ellipse cx="262" cy="108" rx="6.5" ry="7" fill="#FCD34D" transform="rotate(-30 262 108)"/>
+
+                            <!-- Pants -->
+                            <path d="M198 162 l 1 36 q0 3 3 3 l 12 0 q3 0 3 -3 l 2 -20 l 2 20 q0 3 3 3 l 12 0 q3 0 3 -3 l 1 -36 z" fill="url(#pantsGrad)"/>
+                            <!-- Pants seam -->
+                            <line x1="220" y1="165" x2="220" y2="178" stroke="#1E40AF" stroke-width="1" opacity="0.5"/>
+
+                            <!-- Shoes -->
+                            <ellipse cx="208" cy="202" rx="11" ry="5" fill="#1F2937"/>
+                            <rect x="197" y="198" width="22" height="4" fill="#1F2937" rx="1"/>
+                            <ellipse cx="234" cy="202" rx="11" ry="5" fill="#1F2937"/>
+                            <rect x="223" y="198" width="22" height="4" fill="#1F2937" rx="1"/>
+
+                            <!-- Pencil -->
+                            <g transform="rotate(-42 260 115)">
+                                <rect x="238" y="111" width="54" height="10" rx="1.5" fill="url(#pencilGrad)"/>
+                                <rect x="238" y="111" width="8" height="10" fill="#F87171"/>
+                                <path d="M292 111 l10 5 l-10 5 z" fill="#1F2937"/>
+                                <rect x="234" y="112.5" width="6" height="7" rx="1" fill="#FBBF24"/>
+                                <rect x="231" y="113.5" width="4" height="5" rx="1" fill="#E5E7EB"/>
+                            </g>
+                        </g>
                     </svg>
                 </div>
                 <div class="od-status" id="od-status">Admin javobi kutilmoqda</div>
