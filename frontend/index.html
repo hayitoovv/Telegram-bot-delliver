@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
     <script>
-        // Agar ?admin=1 bo'lsa — tgWebAppData'ni sessionStorage'ga saqlab, admin panelga yo'naltirish.
-        // Telegram Desktop tgWebAppData ni faqat root URL'ga yuboradi.
+        // Agar ?view=mgr bo'lsa — tgWebAppData'ni sessionStorage'ga saqlab, admin panelga yo'naltirish.
         (function () {
             try {
                 var p = new URL(window.location.href);
-                if (p.searchParams.get('admin') === '1') {
+                if (p.searchParams.get('view') === 'mgr') {
                     var h = window.location.hash || '';
                     try {
                         sessionStorage.setItem('__admin_orig_hash', h);

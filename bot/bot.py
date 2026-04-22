@@ -116,11 +116,9 @@ async def get_keyboard(user_id: int, lang: str):
         [KeyboardButton(t(lang, 'my_orders'))],
     ]
     if is_admin(user_id):
-        # Telegram Desktop tgWebAppData'ni faqat aniq bir URL'ga yuboradi (mini app URL).
-        # Shuning uchun admin URL'ni mini app bilan BIR XIL struktura bilan qilamiz,
-        # faqat qo'shimcha admin=1 flagi bilan. Frontend'da admin=1 ni ko'rib
-        # /admin-panel/ ga hash saqlab yo'naltiramiz.
-        admin_url = f"{base}{sep}lang={lang}&admin=1"
+        # "admin" so'zini URL'da ishlatmaymiz — ayrim Telegram versiyalari bu keyword'dan
+        # tgWebAppData yuborishdan bosh tortishi mumkin. O'rniga neytral "view=mgr" ishlatamiz.
+        admin_url = f"{base}{sep}lang={lang}&view=mgr"
         keyboard.append([KeyboardButton(t(lang, 'admin_panel'), web_app=WebAppInfo(url=admin_url))])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
