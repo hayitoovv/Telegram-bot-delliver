@@ -1,0 +1,210 @@
+"""Admin paneli uchun Product/Category CRUD."""
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+from .models import Category, Product
+from food_delivery.admin_auth import check_admin
+
+
+def _abs_url(request, file_field):
+    if not file_field:
+        return None
+    url = file_field.url
+    return request.build_absolute_uri(url) if request else url
+
+
+def category_to_dict(cat, request=None):
+    return {
+        'id': cat.id,
+        'name': cat.name,
+        'name_ru': cat.name_ru,
+        'image': _abs_url(request, cat.image),
+        'is_active': cat.is_active,
+        'order': cat.order,
+    }
+
+
+def product_to_dict(p, request=None):
+    return {
+        'id': p.id,
+        'category': p.category_id,
+        'category_name': p.category.name if p.category_id else None,
+        'name': p.name,
+        'name_ru': p.name_ru,
+        'description': p.description,
+        'description_ru': p.description_ru,
+        'price': p.price,
+        'image': _abs_url(request, p.image),
+        'is_active': p.is_active,
+        'created_at': p.created_at.isoformat(),
+    }
+
+
+class AdminCategoryListView(APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        qs = Category.objects.all().order_by('order', 'name')
+        data = []
+        for cat in qs:
+            d = category_to_dict(cat, request)
+            d['products_count'] = cat.products.count()
+            data.append(d)
+        return Response({'results': data})
+
+    def post(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        cat = Category.objects.create(
+            name=request.data.get('name', '').strip()[:200],
+            name_ru=request.data.get('name_ru', '').strip()[:200],
+            is_active=str(request.data.get('is_active', 'true')).lower() in ('true', '1', 'on'),
+            order=int(request.data.get('order') or 0),
+        )
+        image = request.FILES.get('image')
+        if image:
+            cat.image = image
+            cat.save(update_fields=['image'])
+        return Response(category_to_dict(cat, request), status=status.HTTP_201_CREATED)
+
+
+class AdminCategoryDetailView(APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def _get(self, pk):
+        try:
+            return Category.objects.get(pk=pk), None
+        except Category.DoesNotExist:
+            return None, Response({'error': 'Topilmadi'}, status=status.HTTP_404_NOT_FOUND)
+
+    def patch(self, request, pk):
+        user, err = check_admin(request)
+        if err:
+            return err
+        cat, e = self._get(pk)
+        if e:
+            return e
+
+        for field in ('name', 'name_ru'):
+            if field in request.data:
+                setattr(cat, field, (request.data.get(field) or '').strip()[:200])
+        if 'is_active' in request.data:
+            cat.is_active = str(request.data.get('is_active')).lower() in ('true', '1', 'on')
+        if 'order' in request.data:
+            try:
+                cat.order = int(request.data.get('order') or 0)
+            except ValueError:
+                pass
+        image = request.FILES.get('image')
+        if image:
+            cat.image = image
+        cat.save()
+        return Response(category_to_dict(cat, request))
+
+    def delete(self, request, pk):
+        user, err = check_admin(request)
+        if err:
+            return err
+        cat, e = self._get(pk)
+        if e:
+            return e
+        cat.delete()
+        return Response({'ok': True})
+
+
+class AdminProductListView(APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        qs = Product.objects.select_related('category').all().order_by('-created_at')
+        category_id = request.query_params.get('category_id')
+        if category_id:
+            qs = qs.filter(category_id=category_id)
+        q = request.query_params.get('q')
+        if q:
+            qs = qs.filter(name__icontains=q)
+        data = [product_to_dict(p, request) for p in qs]
+        return Response({'results': data})
+
+    def post(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        try:
+            category = Category.objects.get(pk=request.data.get('category'))
+        except (Category.DoesNotExist, ValueError, TypeError):
+            return Response({'error': 'Kategoriya tanlanmagan'}, status=400)
+
+        product = Product.objects.create(
+            category=category,
+            name=(request.data.get('name') or '').strip()[:200],
+            name_ru=(request.data.get('name_ru') or '').strip()[:200],
+            description=(request.data.get('description') or '').strip(),
+            description_ru=(request.data.get('description_ru') or '').strip(),
+            price=int(request.data.get('price') or 0),
+            is_active=str(request.data.get('is_active', 'true')).lower() in ('true', '1', 'on'),
+        )
+        image = request.FILES.get('image')
+        if image:
+            product.image = image
+            product.save(update_fields=['image'])
+        return Response(product_to_dict(product, request), status=status.HTTP_201_CREATED)
+
+
+class AdminProductDetailView(APIView):
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def _get(self, pk):
+        try:
+            return Product.objects.get(pk=pk), None
+        except Product.DoesNotExist:
+            return None, Response({'error': 'Topilmadi'}, status=404)
+
+    def patch(self, request, pk):
+        user, err = check_admin(request)
+        if err:
+            return err
+        product, e = self._get(pk)
+        if e:
+            return e
+
+        if 'category' in request.data:
+            try:
+                product.category = Category.objects.get(pk=request.data.get('category'))
+            except (Category.DoesNotExist, ValueError, TypeError):
+                pass
+        for field in ('name', 'name_ru', 'description', 'description_ru'):
+            if field in request.data:
+                val = (request.data.get(field) or '').strip()
+                setattr(product, field, val[:200] if field in ('name', 'name_ru') else val)
+        if 'price' in request.data:
+            try:
+                product.price = int(request.data.get('price') or 0)
+            except ValueError:
+                pass
+        if 'is_active' in request.data:
+            product.is_active = str(request.data.get('is_active')).lower() in ('true', '1', 'on')
+        image = request.FILES.get('image')
+        if image:
+            product.image = image
+        product.save()
+        return Response(product_to_dict(product, request))
+
+    def delete(self, request, pk):
+        user, err = check_admin(request)
+        if err:
+            return err
+        product, e = self._get(pk)
+        if e:
+            return e
+        product.delete()
+        return Response({'ok': True})

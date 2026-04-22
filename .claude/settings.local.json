@@ -17,7 +17,8 @@
       "Bash(git push *)",
       "Bash(grep -E \"\\\\.env$\")",
       "Bash(node --check /d/PROJECTS/Telegram-bot-delliver/frontend/js/app.js)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(node --check /d/PROJECTS/Telegram-bot-delliver/admin-panel/js/admin.js)"
     ]
   }
 }

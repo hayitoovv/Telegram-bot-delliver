@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — AVENUE</title>
+    <link rel="stylesheet" href="/admin-panel/css/admin.css?v=1">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <!-- App shell -->
+    <div id="app">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo-text">AVENUE</div>
+                <div class="brand-logo-sub">ADMIN</div>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-view="dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-view="orders">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l3-2 3 2 2-2 3 2 3-2 2 2V2l-2 2-3-2-3 2-2-2-3 2-3-2z"/><path d="M8 9h8"/><path d="M8 13h6"/></svg>
+                    <span>Buyurtmalar</span>
+                    <span class="nav-badge" id="nav-orders-badge" style="display:none;">0</span>
+                </button>
+                <button class="nav-item" data-view="products">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    <span>Mahsulotlar</span>
+                </button>
+                <button class="nav-item" data-view="categories">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                    <span>Kategoriyalar</span>
+                </button>
+                <button class="nav-item" data-view="users">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>Foydalanuvchilar</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main">
+            <header class="topbar">
+                <button class="btn-icon sidebar-toggle" onclick="toggleSidebar()" aria-label="Menu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
+                <div class="topbar-user">
+                    <span class="topbar-user-name" id="topbar-user">Admin</span>
+                    <div class="topbar-user-avatar">A</div>
+                </div>
+            </header>
+
+            <section class="content" id="content">
+                <!-- Loader shown initially -->
+                <div class="center-state" id="initial-loader">
+                    <div class="spinner"></div>
+                    <div class="state-text">Yuklanmoqda...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Unauthorized -->
+    <div class="auth-gate" id="auth-gate" style="display:none;">
+        <div class="auth-card">
+            <div class="auth-icon">🔒</div>
+            <h2 class="auth-title">Kirish rad etildi</h2>
+            <p class="auth-text" id="auth-text">Sizda admin panelga kirish huquqi yo'q.</p>
+            <button class="btn-primary" onclick="window.Telegram.WebApp.close()">Yopish</button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" style="display:none;">
+        <span id="toast-text"></span>
+    </div>
+
+    <!-- Modal container -->
+    <div class="modal-root" id="modal-root"></div>
+
+    <script src="/admin-panel/js/admin.js?v=1"></script>
+</body>
+</html>

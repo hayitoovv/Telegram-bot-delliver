@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import admin_views
 
 urlpatterns = [
     path('auth/', views.AuthView.as_view(), name='auth'),
@@ -7,4 +8,8 @@ urlpatterns = [
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('language/', views.LanguageView.as_view(), name='language'),
+
+    # Admin
+    path('admin/users/', admin_views.AdminUserListView.as_view()),
+    path('admin/users/<int:pk>/', admin_views.AdminUserDetailView.as_view()),
 ]
