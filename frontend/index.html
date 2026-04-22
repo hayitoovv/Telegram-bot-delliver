@@ -5,13 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
     <script>
-        // Agar ?admin=1 bo'lsa — admin panel sahifasiga yo'naltirish (hash saqlangan holda).
+        // Agar ?admin=1 bo'lsa — tgWebAppData'ni sessionStorage'ga saqlab, admin panelga yo'naltirish.
         // Telegram Desktop tgWebAppData ni faqat root URL'ga yuboradi.
         (function () {
             try {
                 var p = new URL(window.location.href);
                 if (p.searchParams.get('admin') === '1') {
                     var h = window.location.hash || '';
+                    try {
+                        sessionStorage.setItem('__admin_orig_hash', h);
+                        sessionStorage.setItem('__admin_orig_url', window.location.href);
+                        if (h.length > 1) {
+                            var hp = new URLSearchParams(h.substring(1));
+                            var tgData = hp.get('tgWebAppData');
+                            if (tgData) {
+                                sessionStorage.setItem('__admin_tg_data', tgData);
+                            }
+                        }
+                    } catch (e) {}
                     window.location.replace('/admin-panel/' + h);
                 }
             } catch (e) {}
