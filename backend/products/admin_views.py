@@ -125,15 +125,42 @@ class AdminProductListView(APIView):
         user, err = check_admin(request)
         if err:
             return err
-        qs = Product.objects.select_related('category').all().order_by('-created_at')
+        qs = Product.objects.select_related('category').all()
         category_id = request.query_params.get('category_id')
         if category_id:
             qs = qs.filter(category_id=category_id)
-        q = request.query_params.get('q')
+        q = (request.query_params.get('q') or '').strip()
         if q:
             qs = qs.filter(name__icontains=q)
-        data = [product_to_dict(p, request) for p in qs]
-        return Response({'results': data})
+        active = request.query_params.get('is_active')
+        if active in ('true', 'false'):
+            qs = qs.filter(is_active=(active == 'true'))
+
+        ordering = request.query_params.get('ordering') or '-created_at'
+        allowed_order = {'name', '-name', 'price', '-price', 'created_at', '-created_at'}
+        if ordering in allowed_order:
+            qs = qs.order_by(ordering)
+        else:
+            qs = qs.order_by('-created_at')
+
+        total = qs.count()
+        try:
+            page = max(1, int(request.query_params.get('page') or 1))
+        except ValueError:
+            page = 1
+        try:
+            per_page = min(200, max(10, int(request.query_params.get('per_page') or 30)))
+        except ValueError:
+            per_page = 30
+        start = (page - 1) * per_page
+        qs = qs[start:start + per_page]
+        return Response({
+            'results': [product_to_dict(p, request) for p in qs],
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page,
+        })
 
     def post(self, request):
         user, err = check_admin(request)
@@ -208,3 +235,43 @@ class AdminProductDetailView(APIView):
             return e
         product.delete()
         return Response({'ok': True})
+
+
+class AdminProductBulkView(APIView):
+    def post(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        ids = request.data.get('ids') or []
+        action = request.data.get('action')
+        if not ids or action not in ('activate', 'deactivate', 'delete'):
+            return Response({'error': "Noto'g'ri so'rov"}, status=400)
+        qs = Product.objects.filter(id__in=ids)
+        count = qs.count()
+        if action == 'activate':
+            qs.update(is_active=True)
+        elif action == 'deactivate':
+            qs.update(is_active=False)
+        elif action == 'delete':
+            qs.delete()
+        return Response({'ok': True, 'count': count})
+
+
+class AdminCategoryBulkView(APIView):
+    def post(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        ids = request.data.get('ids') or []
+        action = request.data.get('action')
+        if not ids or action not in ('activate', 'deactivate', 'delete'):
+            return Response({'error': "Noto'g'ri so'rov"}, status=400)
+        qs = Category.objects.filter(id__in=ids)
+        count = qs.count()
+        if action == 'activate':
+            qs.update(is_active=True)
+        elif action == 'deactivate':
+            qs.update(is_active=False)
+        elif action == 'delete':
+            qs.delete()
+        return Response({'ok': True, 'count': count})

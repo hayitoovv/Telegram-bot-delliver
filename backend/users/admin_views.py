@@ -16,22 +16,42 @@ class AdminUserListView(APIView):
         if err:
             return err
 
-        qs = TelegramUser.objects.annotate(orders_count=Count('orders')).order_by('-created_at')
-        q = request.query_params.get('q')
+        from django.db.models import Sum
+        qs = (TelegramUser.objects
+              .annotate(orders_count=Count('orders'), spent=Sum('orders__total_price'))
+              .order_by('-created_at'))
+        q = (request.query_params.get('q') or '').strip()
         if q:
             qs = qs.filter(first_name__icontains=q) | qs.filter(
                 last_name__icontains=q) | qs.filter(username__icontains=q) | qs.filter(
                 phone__icontains=q) | qs.filter(telegram_id__icontains=q)
-        limit = int(request.query_params.get('limit') or 200)
-        qs = qs[:limit]
+
+        total = qs.count()
+        try:
+            page = max(1, int(request.query_params.get('page') or 1))
+        except ValueError:
+            page = 1
+        try:
+            per_page = min(200, max(10, int(request.query_params.get('per_page') or 30)))
+        except ValueError:
+            per_page = 30
+        start = (page - 1) * per_page
+        qs = qs[start:start + per_page]
 
         data = []
         for u in qs:
             d = TelegramUserSerializer(u).data
             d['orders_count'] = u.orders_count
+            d['spent'] = u.spent or 0
             d['created_at'] = u.created_at.isoformat()
             data.append(d)
-        return Response({'results': data})
+        return Response({
+            'results': data,
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page,
+        })
 
 
 class AdminUserDetailView(APIView):
@@ -45,7 +65,13 @@ class AdminUserDetailView(APIView):
             return Response({'error': 'Topilmadi'}, status=404)
         data = TelegramUserSerializer(u).data
         data['created_at'] = u.created_at.isoformat()
+
+        from django.db.models import Sum
+        from orders.serializers import OrderSerializer
+        orders_qs = u.orders.prefetch_related('items').order_by('-created_at')[:30]
         data['orders_count'] = u.orders.count()
+        data['spent'] = u.orders.aggregate(s=Sum('total_price'))['s'] or 0
+        data['orders'] = OrderSerializer(orders_qs, many=True, context={'request': request}).data
         return Response(data)
 
 
