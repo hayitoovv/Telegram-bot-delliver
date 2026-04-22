@@ -51,20 +51,27 @@ class AdminUserDetailView(APIView):
 
 class AdminIssueTokenView(APIView):
     """Bot admin panel link yuborishi uchun token generatsiya qiladi.
-    Bot o'zining initData JSON'ini yuboradi (DEBUG rejimda). Telegram id admin
-    ro'yxatida bo'lsa — token qaytadi."""
+    Bot o'z identifikatsiyasini TELEGRAM_BOT_TOKEN orqali tasdiqlaydi
+    (bot va backend o'rtasida o'rtoq sir)."""
 
     authentication_classes = []
     permission_classes = []
 
     def post(self, request):
-        init_data = request.data.get('initData', '')
-        user_data, reason = verify_telegram_data_detailed(init_data)
-        if user_data is None:
-            return Response({'error': 'Autentifikatsiya xatosi', 'reason': reason}, status=403)
+        # Botni TELEGRAM_BOT_TOKEN orqali tasdiqlash
+        provided_secret = (
+            request.data.get('bot_secret')
+            or request.headers.get('X-Bot-Secret', '')
+        )
+        if not provided_secret or provided_secret != settings.TELEGRAM_BOT_TOKEN:
+            return Response({'error': 'Forbidden'}, status=403)
 
-        tg_id = int(user_data.get('id', 0))
-        if tg_id not in _valid_admin_ids():
+        try:
+            tg_id = int(request.data.get('tg_id') or 0)
+        except (TypeError, ValueError):
+            return Response({'error': "Noto'g'ri tg_id"}, status=400)
+
+        if not tg_id or tg_id not in _valid_admin_ids():
             return Response({'error': "Sizda admin huquqlari yo'q"}, status=403)
 
         token = create_admin_token(tg_id)

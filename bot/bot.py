@@ -255,7 +255,7 @@ async def admin_panel_request(update: Update, context: ContextTypes.DEFAULT_TYPE
         async with httpx.AsyncClient(timeout=8) as client:
             resp = await client.post(
                 f"{BACKEND_URL}/api/admin/issue-token/",
-                json={'initData': json.dumps({'id': user.id})},
+                json={'tg_id': user.id, 'bot_secret': BOT_TOKEN},
             )
             if resp.status_code != 200:
                 await update.message.reply_text(f"Xato: {resp.text[:200]}")
