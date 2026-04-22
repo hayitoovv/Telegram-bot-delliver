@@ -75,20 +75,31 @@ class AdminOrderDetailView(APIView):
         return Response(data)
 
     def patch(self, request, pk):
-        user, err = check_admin(request)
-        if err:
-            return err
+        import logging
+        lgr = logging.getLogger(__name__)
         try:
-            order = Order.objects.get(pk=pk)
-        except Order.DoesNotExist:
-            return Response({'error': 'Topilmadi'}, status=404)
+            user, err = check_admin(request)
+            if err:
+                lgr.error("[PATCH-ORDER] check_admin FAILED for pk=%s", pk)
+                return err
+            try:
+                order = Order.objects.get(pk=pk)
+            except Order.DoesNotExist:
+                lgr.error("[PATCH-ORDER] order %s NOT FOUND", pk)
+                return Response({'error': 'Topilmadi'}, status=404)
 
-        new_status = request.data.get('status')
-        if new_status and new_status in ALLOWED_STATUSES:
-            order.status = new_status
-            order.save(update_fields=['status'])
-            return Response(OrderSerializer(order, context={'request': request}).data)
-        return Response({'error': "Noto'g'ri status"}, status=400)
+            new_status = request.data.get('status')
+            lgr.error("[PATCH-ORDER] pk=%s new_status=%s allowed=%s",
+                      pk, new_status, new_status in ALLOWED_STATUSES)
+            if new_status and new_status in ALLOWED_STATUSES:
+                order.status = new_status
+                order.save(update_fields=['status'])
+                lgr.error("[PATCH-ORDER] SAVED pk=%s status=%s", pk, new_status)
+                return Response(OrderSerializer(order, context={'request': request}).data)
+            return Response({'error': "Noto'g'ri status"}, status=400)
+        except Exception as e:
+            lgr.error("[PATCH-ORDER] EXCEPTION pk=%s: %s", pk, e, exc_info=True)
+            raise
 
 
 class AdminOrderBulkStatusView(APIView):
