@@ -47,12 +47,23 @@ def check_admin(request):
     Muvaffaqiyatli: (user, None) | Xato: (None, Response)
     """
     # 1-variant: admin_token
-    token = (
-        request.data.get('admin_token')
-        or request.query_params.get('admin_token')
-        or request.headers.get('X-Admin-Token')
-    )
+    token_body = ''
+    try:
+        token_body = request.data.get('admin_token') or ''
+    except Exception:
+        pass
+    token_query = request.query_params.get('admin_token') or ''
+    token_header = request.headers.get('X-Admin-Token') or ''
+    token = token_body or token_query or token_header
     tg_id = verify_admin_token(token) if token else None
+
+    logger.error(
+        "[ADMIN-CHECK] path=%s method=%s ct=%s tok_body=%d tok_query=%d tok_header=%d tg_id=%s",
+        request.path, request.method,
+        request.content_type if hasattr(request, 'content_type') else '-',
+        len(token_body), len(token_query), len(token_header),
+        tg_id,
+    )
 
     # 2-variant: Telegram initData
     if tg_id is None:
