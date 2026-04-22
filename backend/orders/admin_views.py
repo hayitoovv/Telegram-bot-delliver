@@ -12,7 +12,12 @@ from food_delivery.admin_auth import check_admin
 ALLOWED_STATUSES = {s[0] for s in Order.Status.choices}
 
 
-class AdminOrderListView(APIView):
+class _BaseAdminView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+
+class AdminOrderListView(_BaseAdminView):
     def get(self, request):
         user, err = check_admin(request)
         if err:
@@ -55,7 +60,7 @@ class AdminOrderListView(APIView):
         })
 
 
-class AdminOrderDetailView(APIView):
+class AdminOrderDetailView(_BaseAdminView):
     def get(self, request, pk):
         user, err = check_admin(request)
         if err:
@@ -102,7 +107,7 @@ class AdminOrderDetailView(APIView):
             raise
 
 
-class AdminOrderBulkStatusView(APIView):
+class AdminOrderBulkStatusView(_BaseAdminView):
     def post(self, request):
         user, err = check_admin(request)
         if err:
@@ -115,7 +120,7 @@ class AdminOrderBulkStatusView(APIView):
         return Response({'ok': True, 'count': len(ids)})
 
 
-class AdminDashboardView(APIView):
+class AdminDashboardView(_BaseAdminView):
     def get(self, request):
         user, err = check_admin(request)
         if err:

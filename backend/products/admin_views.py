@@ -8,6 +8,12 @@ from .models import Category, Product
 from food_delivery.admin_auth import check_admin
 
 
+class _BaseAdminView(APIView):
+    authentication_classes = []
+    permission_classes = []
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+
 def _abs_url(request, file_field):
     if not file_field:
         return None
@@ -42,9 +48,7 @@ def product_to_dict(p, request=None):
     }
 
 
-class AdminCategoryListView(APIView):
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-
+class AdminCategoryListView(_BaseAdminView):
     def get(self, request):
         user, err = check_admin(request)
         if err:
@@ -74,9 +78,7 @@ class AdminCategoryListView(APIView):
         return Response(category_to_dict(cat, request), status=status.HTTP_201_CREATED)
 
 
-class AdminCategoryDetailView(APIView):
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-
+class AdminCategoryDetailView(_BaseAdminView):
     def _get(self, pk):
         try:
             return Category.objects.get(pk=pk), None
@@ -118,9 +120,7 @@ class AdminCategoryDetailView(APIView):
         return Response({'ok': True})
 
 
-class AdminProductListView(APIView):
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-
+class AdminProductListView(_BaseAdminView):
     def get(self, request):
         user, err = check_admin(request)
         if err:
@@ -187,9 +187,7 @@ class AdminProductListView(APIView):
         return Response(product_to_dict(product, request), status=status.HTTP_201_CREATED)
 
 
-class AdminProductDetailView(APIView):
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-
+class AdminProductDetailView(_BaseAdminView):
     def _get(self, pk):
         try:
             return Product.objects.get(pk=pk), None
@@ -237,7 +235,7 @@ class AdminProductDetailView(APIView):
         return Response({'ok': True})
 
 
-class AdminProductBulkView(APIView):
+class AdminProductBulkView(_BaseAdminView):
     def post(self, request):
         user, err = check_admin(request)
         if err:
@@ -257,7 +255,7 @@ class AdminProductBulkView(APIView):
         return Response({'ok': True, 'count': count})
 
 
-class AdminCategoryBulkView(APIView):
+class AdminCategoryBulkView(_BaseAdminView):
     def post(self, request):
         user, err = check_admin(request)
         if err:

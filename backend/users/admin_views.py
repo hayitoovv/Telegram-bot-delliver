@@ -11,6 +11,9 @@ from food_delivery.telegram_auth import verify_telegram_data_detailed
 
 
 class AdminUserListView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
     def get(self, request):
         user, err = check_admin(request)
         if err:
@@ -55,6 +58,9 @@ class AdminUserListView(APIView):
 
 
 class AdminUserDetailView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
     def get(self, request, pk):
         user, err = check_admin(request)
         if err:
