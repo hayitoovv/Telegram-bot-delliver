@@ -105,6 +105,21 @@ def t(lang: str, key: str, **kwargs) -> str:
     return text
 
 
+async def _fetch_admin_token(user_id: int) -> str:
+    """Backend'dan admin token olish."""
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(
+                f"{BACKEND_URL}/api/admin/issue-token/",
+                json={'tg_id': user_id, 'bot_secret': BOT_TOKEN},
+            )
+            if resp.status_code == 200:
+                return resp.json().get('token', '')
+    except httpx.HTTPError as e:
+        logger.error("Admin token olishda xato: %s", e)
+    return ''
+
+
 async def get_keyboard(user_id: int, lang: str):
     """Til ga qarab keyboard yaratish."""
     base = MINI_APP_URL.rstrip('/') + '/'
@@ -116,8 +131,14 @@ async def get_keyboard(user_id: int, lang: str):
         [KeyboardButton(t(lang, 'my_orders'))],
     ]
     if is_admin(user_id):
-        # Admin panel WebApp button orniga oddiy text tugma — bot token bilan link yuboradi.
-        keyboard.append([KeyboardButton(t(lang, 'admin_panel'))])
+        # Admin panel — token URL'ga qo'shiladi, Telegram WebApp initData kerak emas.
+        admin_token = await _fetch_admin_token(user_id)
+        if admin_token:
+            admin_url = f"{MINI_APP_URL.rstrip('/')}/admin-panel/?token={admin_token}"
+            keyboard.append([KeyboardButton(t(lang, 'admin_panel'), web_app=WebAppInfo(url=admin_url))])
+        else:
+            # Fallback: agar token olishda xato — text tugma (bot link yuboradi)
+            keyboard.append([KeyboardButton(t(lang, 'admin_panel'))])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
