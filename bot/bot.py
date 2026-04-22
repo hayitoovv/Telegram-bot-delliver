@@ -116,7 +116,12 @@ async def get_keyboard(user_id: int, lang: str):
         [KeyboardButton(t(lang, 'my_orders'))],
     ]
     if is_admin(user_id) and ADMIN_PANEL_URL:
-        keyboard.append([KeyboardButton(t(lang, 'admin_panel'), web_app=WebAppInfo(url=ADMIN_PANEL_URL))])
+        # Telegram Desktop ba'zan path URL'larga initData yubormaydi — query qo'shib
+        # uni WebApp sifatida to'liq tan olishga majbur qilamiz
+        admin_url = ADMIN_PANEL_URL
+        if '?' not in admin_url:
+            admin_url = admin_url.rstrip('/') + '/?v=1'
+        keyboard.append([KeyboardButton(t(lang, 'admin_panel'), web_app=WebAppInfo(url=admin_url))])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
