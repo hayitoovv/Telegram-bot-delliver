@@ -570,6 +570,7 @@ table.admin-table {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    flex-wrap: wrap;
     padding: 14px 18px;
     border-top: 1px solid var(--border);
     background: var(--bg);
@@ -579,6 +580,19 @@ table.admin-table {
 .pagination-controls {
     display: flex;
     gap: 6px;
+    flex-wrap: wrap;
+}
+@media (max-width: 700px) {
+    .pagination {
+        padding: 12px 14px;
+        gap: 8px;
+    }
+    .page-btn {
+        min-width: 30px;
+        height: 30px;
+        padding: 0 8px;
+        font-size: 12.5px;
+    }
 }
 .page-btn {
     min-width: 32px;
@@ -606,7 +620,8 @@ table.admin-table {
 .bulk-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    flex-wrap: wrap;
     padding: 12px 18px;
     background: var(--brand-cream-alt);
     border-bottom: 1px solid var(--brand-border);
@@ -614,7 +629,7 @@ table.admin-table {
     color: var(--text);
 }
 .bulk-bar b { font-weight: 700; }
-.bulk-bar-spacer { flex: 1; }
+.bulk-bar-spacer { flex: 1; min-width: 0; }
 .bulk-bar select {
     padding: 6px 10px;
     border: 1px solid var(--border);
@@ -623,6 +638,23 @@ table.admin-table {
     font-size: 13px;
     font-family: inherit;
     color: var(--text);
+    min-width: 0;
+    flex-shrink: 1;
+}
+.bulk-bar button {
+    flex-shrink: 0;
+}
+@media (max-width: 700px) {
+    .bulk-bar {
+        gap: 8px;
+        padding: 10px 14px;
+    }
+    .bulk-bar-spacer { flex-basis: 100%; height: 0; }
+    .bulk-bar button {
+        padding: 8px 12px;
+        font-size: 12.5px;
+    }
+    .bulk-bar select { flex: 1; }
 }
 
 /* ==========================================================
@@ -702,9 +734,47 @@ table.admin-table {
     flex-wrap: wrap;
     align-items: center;
 }
-.toolbar .input-field { min-width: 220px; max-width: 280px; }
-.toolbar .select-field { max-width: 180px; }
-.toolbar-spacer { flex: 1; }
+.toolbar .input-field { min-width: 180px; max-width: 280px; flex: 1 1 200px; }
+.toolbar .select-field { max-width: 200px; flex: 1 1 140px; }
+.toolbar-spacer { flex: 1; min-width: 0; }
+
+@media (max-width: 700px) {
+    .toolbar {
+        width: 100%;
+        gap: 8px;
+    }
+    .toolbar .input-field, .toolbar .select-field {
+        min-width: 0;
+        max-width: 100%;
+        flex: 1 1 calc(50% - 4px);
+    }
+    .toolbar .btn-primary {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+    .card-header {
+        padding: 14px 16px;
+    }
+    .content {
+        padding: 14px;
+    }
+    .admin-table thead th,
+    .admin-table tbody td {
+        padding: 10px 12px;
+        font-size: 12.5px;
+    }
+    .table-img {
+        width: 38px;
+        height: 38px;
+    }
+    .row-actions {
+        gap: 4px;
+    }
+    .btn-row-action {
+        padding: 5px 8px;
+        font-size: 11.5px;
+    }
+}
 
 .tab-bar {
     display: flex;
