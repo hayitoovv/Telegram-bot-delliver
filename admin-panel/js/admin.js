@@ -784,40 +784,6 @@ function showAuthError(e) {
     }
     document.getElementById('auth-text').textContent = msg;
 
-    // Diagnostika bloki
-    const diag = document.createElement('div');
-    diag.style.cssText = 'margin-top:18px;padding:10px;background:#F9FAFB;border-radius:8px;font-size:11px;color:#6B7280;text-align:left;font-family:monospace;word-break:break-all;';
-    const initDataLen = tg?.initData ? tg.initData.length : 0;
-    const userId = tg?.initDataUnsafe?.user?.id;
-    const hash = window.location.hash || '';
-    const hashLen = hash.length;
-    let hashKeys = '-';
-    let tgDataPresent = false;
-    try {
-        const p = new URLSearchParams(hash.substring(1));
-        const keys = [];
-        for (const k of p.keys()) keys.push(k);
-        hashKeys = keys.join(', ');
-        tgDataPresent = p.has('tgWebAppData');
-    } catch {}
-    let sessData = '';
-    let sessOrigHash = '';
-    try {
-        sessData = sessionStorage.getItem('__admin_tg_data') || '';
-        sessOrigHash = sessionStorage.getItem('__admin_orig_hash') || '';
-    } catch {}
-    diag.innerHTML = `
-        <div><b>Diagnostika:</b></div>
-        <div>tg.initData length: ${initDataLen}</div>
-        <div>initDataUnsafe.user.id: ${userId || '(yo\'q)'}</div>
-        <div>URL hash length: ${hashLen}</div>
-        <div>Hash params: ${escapeHtml(hashKeys)}</div>
-        <div><b>Hash'da tgWebAppData bor?:</b> ${tgDataPresent ? 'HA' : "YO'Q"}</div>
-        <div><b>Session tg_data length:</b> ${sessData.length}</div>
-        <div>Session orig_hash length: ${sessOrigHash.length}</div>
-        <div>URL: ${escapeHtml(window.location.href.substring(0, 180))}</div>
-    `;
-    document.getElementById('auth-text').after(diag);
 }
 
 async function renderDashboardFromData(content, d) {

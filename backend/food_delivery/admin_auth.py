@@ -43,12 +43,10 @@ def _valid_admin_ids():
 
 def check_admin(request):
     """
-    Request'dan admin'ni tekshiradi.
-    Token yoki initData orqali.
-    Muvaffaqiyatli: (user, None)
-    Xato: (None, Response)
+    Request'dan admin'ni tekshiradi. Token yoki initData orqali.
+    Muvaffaqiyatli: (user, None) | Xato: (None, Response)
     """
-    # 1-variant: admin_token (URL orqali yoki header)
+    # 1-variant: admin_token
     token = (
         request.data.get('admin_token')
         or request.query_params.get('admin_token')
@@ -56,7 +54,7 @@ def check_admin(request):
     )
     tg_id = verify_admin_token(token) if token else None
 
-    # 2-variant: Telegram initData (agar token ishlamasa)
+    # 2-variant: Telegram initData
     if tg_id is None:
         init_data = request.data.get('initData') or request.query_params.get('initData', '')
         user_data, reason = verify_telegram_data_detailed(init_data)
