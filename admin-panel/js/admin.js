@@ -6,6 +6,33 @@ if (tg) { tg.ready(); tg.expand(); }
 
 const API_BASE = window.location.origin;
 
+// ------------------------ Token (primary auth) ------------------
+const TOKEN_KEY = 'admin_panel_token';
+
+(function captureToken() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const t = params.get('token');
+        if (t) {
+            localStorage.setItem(TOKEN_KEY, t);
+            // URL'dan token'ni olib tashlash
+            params.delete('token');
+            const clean = window.location.pathname +
+                (params.toString() ? '?' + params.toString() : '') +
+                window.location.hash;
+            history.replaceState(null, '', clean);
+        }
+    } catch {}
+})();
+
+function getAdminToken() {
+    try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; }
+}
+
+function clearAdminToken() {
+    try { localStorage.removeItem(TOKEN_KEY); } catch {}
+}
+
 // ------------------------ initData cache ------------------------
 const CACHE_KEY = 'admin_init_data_cache';
 function cacheInit(v) {
@@ -59,20 +86,27 @@ function getInitData() {
 // ------------------------ API helpers --------------------------
 async function api(path, { method = 'GET', body = null, form = false, query = null } = {}) {
     const initData = getInitData();
+    const token = getAdminToken();
     let url = `${API_BASE}${path}`;
     if (method === 'GET' || query) {
         const params = new URLSearchParams(query || {});
-        params.set('initData', initData);
+        if (token) params.set('admin_token', token);
+        else if (initData) params.set('initData', initData);
         url += (path.includes('?') ? '&' : '?') + params.toString();
     }
     const opts = { method, headers: {} };
+    if (token) opts.headers['X-Admin-Token'] = token;
     if (method !== 'GET') {
         if (form) {
-            form.append('initData', initData);
+            if (token) form.append('admin_token', token);
+            else if (initData) form.append('initData', initData);
             opts.body = form;
         } else {
             opts.headers['Content-Type'] = 'application/json';
-            opts.body = JSON.stringify({ ...(body || {}), initData });
+            const payload = { ...(body || {}) };
+            if (token) payload.admin_token = token;
+            else if (initData) payload.initData = initData;
+            opts.body = JSON.stringify(payload);
         }
     }
     const res = await fetch(url, opts);

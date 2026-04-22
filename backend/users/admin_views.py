@@ -2,10 +2,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models import Count
+from django.conf import settings
 
 from .models import TelegramUser
 from .serializers import TelegramUserSerializer
-from food_delivery.admin_auth import check_admin
+from food_delivery.admin_auth import check_admin, create_admin_token, _valid_admin_ids
+from food_delivery.telegram_auth import verify_telegram_data_detailed
 
 
 class AdminUserListView(APIView):
@@ -45,3 +47,25 @@ class AdminUserDetailView(APIView):
         data['created_at'] = u.created_at.isoformat()
         data['orders_count'] = u.orders.count()
         return Response(data)
+
+
+class AdminIssueTokenView(APIView):
+    """Bot admin panel link yuborishi uchun token generatsiya qiladi.
+    Bot o'zining initData JSON'ini yuboradi (DEBUG rejimda). Telegram id admin
+    ro'yxatida bo'lsa — token qaytadi."""
+
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        init_data = request.data.get('initData', '')
+        user_data, reason = verify_telegram_data_detailed(init_data)
+        if user_data is None:
+            return Response({'error': 'Autentifikatsiya xatosi', 'reason': reason}, status=403)
+
+        tg_id = int(user_data.get('id', 0))
+        if tg_id not in _valid_admin_ids():
+            return Response({'error': "Sizda admin huquqlari yo'q"}, status=403)
+
+        token = create_admin_token(tg_id)
+        return Response({'token': token, 'expires_hours': 24})

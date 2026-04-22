@@ -116,10 +116,8 @@ async def get_keyboard(user_id: int, lang: str):
         [KeyboardButton(t(lang, 'my_orders'))],
     ]
     if is_admin(user_id):
-        # "admin" so'zini URL'da ishlatmaymiz — ayrim Telegram versiyalari bu keyword'dan
-        # tgWebAppData yuborishdan bosh tortishi mumkin. O'rniga neytral "view=mgr" ishlatamiz.
-        admin_url = f"{base}{sep}lang={lang}&view=mgr"
-        keyboard.append([KeyboardButton(t(lang, 'admin_panel'), web_app=WebAppInfo(url=admin_url))])
+        # Admin panel WebApp button orniga oddiy text tugma — bot token bilan link yuboradi.
+        keyboard.append([KeyboardButton(t(lang, 'admin_panel'))])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
@@ -244,6 +242,39 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(t(lang, 'help'))
 
 
+ADMIN_PANEL_BASE_URL = (MINI_APP_URL or '').rstrip('/') + '/admin-panel/'
+
+
+async def admin_panel_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin panel tugmasi/buyrugi — backend'dan token olib, link yuboradi."""
+    user = update.effective_user
+    if not is_admin(user.id):
+        return
+
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            resp = await client.post(
+                f"{BACKEND_URL}/api/admin/issue-token/",
+                json={'initData': json.dumps({'id': user.id})},
+            )
+            if resp.status_code != 200:
+                await update.message.reply_text(f"Xato: {resp.text[:200]}")
+                return
+            token = resp.json().get('token', '')
+    except httpx.HTTPError as e:
+        logger.error("Admin token olishda xato: %s", e)
+        await update.message.reply_text("Token olishda xato yuz berdi")
+        return
+
+    admin_link = f"{ADMIN_PANEL_BASE_URL}?token={token}"
+    text = (
+        "🛠 <b>Admin Panel</b>\n\n"
+        "Quyidagi havoladan foydalaning. Havola 24 soat davomida amal qiladi.\n\n"
+        f"🔗 {admin_link}"
+    )
+    await update.message.reply_text(text, parse_mode='HTML', disable_web_page_preview=True)
+
+
 def main():
     """Botni ishga tushirish."""
     if not BOT_TOKEN:
@@ -255,10 +286,13 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("admin", admin_panel_request))
     app.add_handler(MessageHandler(filters.Regex("^(Mening buyurtmalarim|Мои заказы)$"), my_orders))
     app.add_handler(MessageHandler(filters.Regex("(Tilni o'zgartirish|Изменить язык)"), change_language))
     app.add_handler(MessageHandler(filters.Regex("^🇺🇿 O'zbek tili$|^🇷🇺 Русский язык$"), set_language))
     app.add_handler(MessageHandler(filters.Regex("^(Chat|Чат)$"), chat_support))
+    # Admin panel tugmasi (text)
+    app.add_handler(MessageHandler(filters.Regex("^(🛠 Admin panel|🛠 Админ панель)$"), admin_panel_request))
     # Admin reply'larini qo'lga olish
     app.add_handler(MessageHandler(filters.REPLY & filters.TEXT & ~filters.COMMAND, admin_reply))
 

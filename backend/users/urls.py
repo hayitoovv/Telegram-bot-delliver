@@ -12,4 +12,5 @@ urlpatterns = [
     # Admin
     path('admin/users/', admin_views.AdminUserListView.as_view()),
     path('admin/users/<int:pk>/', admin_views.AdminUserDetailView.as_view()),
+    path('admin/issue-token/', admin_views.AdminIssueTokenView.as_view()),
 ]
