@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Food Delivery</title>
+    <script>
+        // Agar ?admin=1 bo'lsa — admin panel sahifasiga yo'naltirish (hash saqlangan holda).
+        // Telegram Desktop tgWebAppData ni faqat root URL'ga yuboradi.
+        (function () {
+            try {
+                var p = new URL(window.location.href);
+                if (p.searchParams.get('admin') === '1') {
+                    var h = window.location.hash || '';
+                    window.location.replace('/admin-panel/' + h);
+                }
+            } catch (e) {}
+        })();
+    </script>
     <link rel="stylesheet" href="/app/css/style.css?v=53">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
