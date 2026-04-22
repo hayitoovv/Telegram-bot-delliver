@@ -58,12 +58,22 @@ class AdminIssueTokenView(APIView):
     permission_classes = []
 
     def post(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
         # Botni TELEGRAM_BOT_TOKEN orqali tasdiqlash
         provided_secret = (
-            request.data.get('bot_secret')
-            or request.headers.get('X-Bot-Secret', '')
+            (request.data.get('bot_secret') or '')
+            or (request.headers.get('X-Bot-Secret') or '')
+        ).strip()
+        expected = (settings.TELEGRAM_BOT_TOKEN or '').strip()
+        logger.error(
+            "[ADMIN-TOKEN] provided_len=%d expected_len=%d match=%s prov_tail=%s exp_tail=%s",
+            len(provided_secret), len(expected),
+            provided_secret == expected,
+            provided_secret[-6:] if provided_secret else '',
+            expected[-6:] if expected else '',
         )
-        if not provided_secret or provided_secret != settings.TELEGRAM_BOT_TOKEN:
+        if not provided_secret or provided_secret != expected:
             return Response({'error': 'Forbidden'}, status=403)
 
         try:
