@@ -723,8 +723,29 @@ async function init() {
         await renderDashboardFromData(content, d);
     } catch (e) {
         document.getElementById('auth-gate').style.display = 'flex';
-        document.getElementById('auth-text').textContent =
-            e.status === 403 ? "Sizda admin panelga kirish huquqi yo'q." : ('Xato: ' + e.message);
+        let msg = e.message || 'Xato';
+        if (e.status === 403) {
+            if (e.reason && e.reason.startsWith('empty_init_data')) {
+                msg = "Telegram ma'lumotlari topilmadi. Ilovani botning \"Admin panel\" tugmasidan qayta oching.";
+            } else if (e.reason && e.reason.startsWith('hash_mismatch')) {
+                msg = "Telegram imzosi noto'g'ri.";
+            } else if (e.reason && e.reason.startsWith('auth_date_expired')) {
+                msg = "Sessiya muddati tugadi. Botdan qayta oching.";
+            } else if (e.message && e.message.includes('admin huquqlari')) {
+                msg = "Sizda admin huquqlari yo'q. Telegram ID sizni admin ro'yxatida emas.";
+            } else {
+                msg = `Xato: ${e.message}${e.reason ? ' (' + e.reason + ')' : ''}`;
+            }
+        }
+        document.getElementById('auth-text').textContent = msg;
+        // Diagnostika uchun: foydalanuvchi ID sini ham ko'rsat
+        const u = tg?.initDataUnsafe?.user;
+        if (u?.id) {
+            const diag = document.createElement('div');
+            diag.style.cssText = 'margin-top:14px;font-size:12px;color:var(--text-light);';
+            diag.textContent = `Sizning ID: ${u.id}`;
+            document.getElementById('auth-text').after(diag);
+        }
     }
 }
 
