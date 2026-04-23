@@ -207,18 +207,33 @@ class AdminChatSendView(APIView):
         if len(text) > 2000:
             return Response({'error': 'Xabar juda uzun'}, status=400)
 
+        import html as _html
         msg = ChatMessage.objects.create(user=target, sender='admin', text=text)
 
-        # Userga Telegram orqali yuborish
+        # Userga Telegram orqali inline "Ko'rish" tugma bilan yuborish
         bot_token = settings.TELEGRAM_BOT_TOKEN
+        mini_app_url = (getattr(settings, 'MINI_APP_URL', '') or '').rstrip('/')
         if bot_token:
+            chat_url = f"{mini_app_url}/?lang={target.language or 'uz'}&open_chat=1" if mini_app_url else ''
+            body = (
+                f"💬 <b>Qo'llab-quvvatlash</b>\n\n"
+                f"{_html.escape(text)}"
+            )
+            payload = {
+                'chat_id': int(target.telegram_id),
+                'text': body,
+                'parse_mode': 'HTML',
+            }
+            if chat_url:
+                payload['reply_markup'] = {
+                    'inline_keyboard': [[
+                        {'text': "💬 Ko'rish", 'web_app': {'url': chat_url}}
+                    ]]
+                }
             try:
                 requests.post(
                     f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                    json={
-                        'chat_id': int(target.telegram_id),
-                        'text': f"💬 Qo'llab-quvvatlash:\n\n{text}",
-                    },
+                    json=payload,
                     timeout=10,
                 )
             except requests.RequestException as e:
