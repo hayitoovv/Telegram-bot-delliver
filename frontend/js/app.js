@@ -1402,22 +1402,53 @@ function setLangQuick(lang) {
 // ============================================
 
 function currentTgId() {
-    return tg.initDataUnsafe?.user?.id || null;
+    // 1) Telegram SDK
+    const fromSdk = tg?.initDataUnsafe?.user?.id;
+    if (fromSdk) return fromSdk;
+    // 2) Keshdagi initData'dan
+    try {
+        const raw = localStorage.getItem(INIT_DATA_CACHE_KEY);
+        if (raw) {
+            const { value } = JSON.parse(raw);
+            if (value) {
+                // JSON ("{...}") yoki URL-encoded query bo'lishi mumkin
+                if (value.startsWith('{')) {
+                    const obj = JSON.parse(value);
+                    if (obj.id) return obj.id;
+                } else {
+                    const params = new URLSearchParams(value);
+                    const u = params.get('user');
+                    if (u) {
+                        const obj = JSON.parse(decodeURIComponent(u));
+                        if (obj.id) return obj.id;
+                    }
+                }
+            }
+        }
+    } catch {}
+    // 3) Backend auth response'dan (init qilingandan keyin set bo'ladi)
+    return window.__tg_id || null;
 }
 
 function getUserPhone() {
     try {
         const data = JSON.parse(localStorage.getItem('user_data') || '{}');
         const tgId = currentTgId();
-        if (tgId && data.tg_id === tgId) return data.phone || null;
+        // Agar tg_id mos kelsa — phone qaytaradi. Agar tg_id yo'q bo'lsa,
+        // lekin localStorage'da phone saqlangan bo'lsa — baribir qaytaradi
+        // (bir xil qurilmada bir foydalanuvchi deb taxmin).
+        if (data.phone) {
+            if (!tgId || !data.tg_id || data.tg_id === tgId) return data.phone;
+        }
     } catch {}
     return null;
 }
 
 function setUserPhone(phone) {
     const tgId = currentTgId();
-    if (!tgId) return;
-    localStorage.setItem('user_data', JSON.stringify({ tg_id: tgId, phone }));
+    try {
+        localStorage.setItem('user_data', JSON.stringify({ tg_id: tgId || null, phone }));
+    } catch {}
 }
 
 let pendingAfterPhone = null;
@@ -2077,6 +2108,8 @@ async function init() {
     setupScrollLockObserver();
     try {
         const res = await apiPost('auth/', {});
+        // tg_id'ni cache qilib currentTgId'da fallback sifatida ishlatish
+        if (res?.user?.telegram_id) window.__tg_id = res.user.telegram_id;
         syncPhoneFromBackend(res?.user);
         window.__is_admin = !!res?.is_admin;
     } catch (e) {
@@ -2089,13 +2122,12 @@ async function init() {
 }
 
 function syncPhoneFromBackend(backendUser) {
-    const tgId = currentTgId();
-    if (!tgId) return;
+    const tgId = backendUser?.telegram_id || currentTgId();
     const backendPhone = (backendUser && backendUser.phone) || '';
     if (backendPhone) {
         // Backend telefon bor — localStorage'ni yangilash
         localStorage.setItem('user_data', JSON.stringify({ tg_id: tgId, phone: backendPhone }));
-    } else {
+    } else if (tgId) {
         // Backend telefon yo'q — eski mahalliy ma'lumotni tozalash
         try {
             const data = JSON.parse(localStorage.getItem('user_data') || '{}');
