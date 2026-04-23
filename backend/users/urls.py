@@ -5,6 +5,7 @@ from . import admin_views
 urlpatterns = [
     path('auth/', views.AuthView.as_view(), name='auth'),
     path('chat/', views.ChatView.as_view(), name='chat'),
+    path('chat/history/', views.ChatHistoryView.as_view(), name='chat-history'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('language/', views.LanguageView.as_view(), name='language'),
@@ -13,4 +14,7 @@ urlpatterns = [
     path('admin/users/', admin_views.AdminUserListView.as_view()),
     path('admin/users/<int:pk>/', admin_views.AdminUserDetailView.as_view()),
     path('admin/issue-token/', admin_views.AdminIssueTokenView.as_view()),
+    path('admin/chat/users/', admin_views.AdminChatUsersView.as_view()),
+    path('admin/chat/<int:pk>/', admin_views.AdminChatHistoryView.as_view()),
+    path('admin/chat/<int:pk>/send/', admin_views.AdminChatSendView.as_view()),
 ]

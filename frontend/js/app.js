@@ -1494,39 +1494,79 @@ function showToast(text) {
     setTimeout(() => { toast.style.display = 'none'; }, 2500);
 }
 
+// ================================================================
+// Chat — DB-backed (API), polling bilan
+// ================================================================
+let chatMessages = [];
+let chatPollTimer = null;
+let chatAdminTargetTgId = null;  // admin mode — target user'ning telegram_id
+
 function showChatModal() {
     document.getElementById('chat-modal').style.display = 'flex';
+    const titleEl = document.querySelector('.chat-title-main');
+    if (titleEl) {
+        titleEl.textContent = chatAdminTargetTgId
+            ? `Mijoz ${chatAdminTargetTgId}`
+            : (LANG === 'ru' ? 'Поддержка' : "Qo'llab quvvatlash xizmati");
+    }
     renderChatMessages();
+    loadChatMessages();
+    startChatPolling();
     setTimeout(() => document.getElementById('chat-input').focus(), 200);
 }
 
 function hideChat() {
     document.getElementById('chat-modal').style.display = 'none';
+    stopChatPolling();
 }
 
-function getChatMessages() {
-    try {
-        return JSON.parse(localStorage.getItem('chat_messages') || '[]');
-    } catch {
-        return [];
+function startChatPolling() {
+    stopChatPolling();
+    chatPollTimer = setInterval(loadChatMessages, 6000);
+}
+
+function stopChatPolling() {
+    if (chatPollTimer) {
+        clearInterval(chatPollTimer);
+        chatPollTimer = null;
     }
 }
 
-function saveChatMessages(msgs) {
-    localStorage.setItem('chat_messages', JSON.stringify(msgs));
+async function loadChatMessages() {
+    try {
+        let data;
+        if (chatAdminTargetTgId) {
+            data = await apiPost(`admin/chat/0/?tg=${chatAdminTargetTgId}`, {});
+        } else {
+            data = await apiPost('chat/history/', {});
+        }
+        const newMsgs = data.messages || [];
+        // Agar yangi xabar qo'shilgan bo'lsa — render
+        if (newMsgs.length !== chatMessages.length ||
+            (newMsgs[newMsgs.length - 1]?.id !== chatMessages[chatMessages.length - 1]?.id)) {
+            chatMessages = newMsgs;
+            renderChatMessages();
+        }
+    } catch (e) {
+        console.error('Chat load fail:', e);
+    }
 }
 
 function renderChatMessages() {
     const body = document.getElementById('chat-body');
-    const msgs = getChatMessages();
-    if (!msgs.length) {
+    if (!chatMessages.length) {
         body.innerHTML = `<div class="chat-empty">${txt('no_messages')}</div>`;
         return;
     }
-    body.innerHTML = msgs.map(m =>
-        `<div class="chat-msg ${m.from === 'me' ? 'me' : 'them'}">${escapeHtml(m.text)}</div>`
-    ).join('');
-    body.scrollTop = body.scrollHeight;
+    // Admin rejimda admin javobi o'ngda, user'niki chapda
+    // Oddiy rejimda o'z xabari o'ngda, admin'niki chapda
+    const isAdminMode = !!chatAdminTargetTgId;
+    const sameScroll = body.scrollTop + body.clientHeight >= body.scrollHeight - 30;
+    body.innerHTML = chatMessages.map(m => {
+        const mine = isAdminMode ? (m.sender === 'admin') : (m.sender === 'user');
+        return `<div class="chat-msg ${mine ? 'me' : 'them'}">${escapeHtml(m.text)}</div>`;
+    }).join('');
+    if (sameScroll) body.scrollTop = body.scrollHeight;
 }
 
 async function sendMessage() {
@@ -1534,18 +1574,54 @@ async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
 
-    const msgs = getChatMessages();
-    msgs.push({ from: 'me', text, at: Date.now() });
-    saveChatMessages(msgs);
     input.value = '';
-    renderChatMessages();
     tg.HapticFeedback?.impactOccurred('light');
 
+    // Optimistic render
+    const tmpId = 'tmp-' + Date.now();
+    chatMessages.push({
+        id: tmpId,
+        sender: chatAdminTargetTgId ? 'admin' : 'user',
+        text,
+        created_at: new Date().toISOString(),
+    });
+    renderChatMessages();
+
     try {
-        await apiPost('chat/', { text });
+        let data;
+        if (chatAdminTargetTgId) {
+            data = await apiPost(`admin/chat/0/send/`, { text, tg: chatAdminTargetTgId });
+        } else {
+            data = await apiPost('chat/', { text });
+        }
+        // Haqiqiy ID bilan almashtirish
+        if (data.message) {
+            const idx = chatMessages.findIndex(m => m.id === tmpId);
+            if (idx !== -1) chatMessages[idx] = data.message;
+            renderChatMessages();
+        }
     } catch (e) {
         console.error('Chat xato:', e);
+        chatMessages = chatMessages.filter(m => m.id !== tmpId);
+        renderChatMessages();
         showToast(txt('chat_error'));
+    }
+}
+
+// Admin chat — URL'da ?chat_user_id=X bo'lsa chat mode'ni sozlash
+(function setupAdminChatMode() {
+    try {
+        const p = new URLSearchParams(window.location.search);
+        const cid = p.get('chat_user_id');
+        if (cid) {
+            chatAdminTargetTgId = parseInt(cid, 10);
+        }
+    } catch {}
+})();
+
+function enterAdminChatIfRequested() {
+    if (chatAdminTargetTgId) {
+        showChatModal();
     }
 }
 
@@ -2002,11 +2078,14 @@ async function init() {
     try {
         const res = await apiPost('auth/', {});
         syncPhoneFromBackend(res?.user);
+        window.__is_admin = !!res?.is_admin;
     } catch (e) {
         console.error('Auth xato:', e);
     }
     await loadCategories();
     refreshActiveOrdersBanner();
+    // Agar URL'da ?chat_user_id=X bo'lsa va user admin bo'lsa — admin chat ochish
+    if (window.__is_admin) enterAdminChatIfRequested();
 }
 
 function syncPhoneFromBackend(backendUser) {

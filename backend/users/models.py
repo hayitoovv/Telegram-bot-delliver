@@ -16,3 +16,27 @@ class TelegramUser(models.Model):
 
     def __str__(self):
         return f"{self.first_name} ({self.telegram_id})"
+
+
+class ChatMessage(models.Model):
+    class Sender(models.TextChoices):
+        USER = 'user', 'Foydalanuvchi'
+        ADMIN = 'admin', 'Admin'
+
+    user = models.ForeignKey(
+        TelegramUser, on_delete=models.CASCADE,
+        related_name='chat_messages', verbose_name='Foydalanuvchi',
+    )
+    sender = models.CharField(max_length=10, choices=Sender.choices, verbose_name='Kimdan')
+    text = models.TextField(verbose_name='Matn')
+    is_read = models.BooleanField(default=False, verbose_name="O'qilgan")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Chat xabar'
+        verbose_name_plural = 'Chat xabarlar'
+        ordering = ['created_at']
+        indexes = [models.Index(fields=['user', 'created_at'])]
+
+    def __str__(self):
+        return f"[{self.sender}] {self.user_id}: {self.text[:40]}"

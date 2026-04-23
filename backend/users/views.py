@@ -1,3 +1,4 @@
+import html
 import logging
 import requests
 from django.conf import settings
@@ -5,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import TelegramUser
+from .models import TelegramUser, ChatMessage
 from .serializers import TelegramUserSerializer
 from food_delivery.telegram_auth import verify_telegram_data_detailed
 
@@ -63,6 +64,7 @@ class AuthView(APIView):
         return Response({
             'user': TelegramUserSerializer(user).data,
             'is_new': False,
+            'is_admin': int(user.telegram_id) in set(_valid_admin_ids()),
         })
 
 
@@ -129,7 +131,7 @@ class LanguageView(APIView):
 
 
 class ChatView(APIView):
-    """Mini-app chat xabarini adminga yo'naltiradi."""
+    """Mini-app chat: user xabarini DB'ga saqlab, adminga forward qiladi."""
 
     def post(self, request):
         user, _user_data, err = _get_user_from_request(request)
@@ -142,71 +144,79 @@ class ChatView(APIView):
         if len(text) > 2000:
             return Response({'error': 'Xabar juda uzun'}, status=400)
 
+        # 1) DB'ga saqlash
+        msg = ChatMessage.objects.create(user=user, sender='user', text=text)
+
+        # 2) Admin(lar)ga inline "Ko'rish" tugmasi bilan yuborish
         bot_token = settings.TELEGRAM_BOT_TOKEN
         admin_ids = _valid_admin_ids()
-        if not bot_token or not admin_ids:
-            logger.error("Admin chat: bot token yoki admin ID sozlanmagan")
-            return Response({'error': 'Xizmat vaqtincha mavjud emas'}, status=503)
+        mini_app_url = (getattr(settings, 'MINI_APP_URL', '') or '').rstrip('/')
+        if bot_token and admin_ids and mini_app_url:
+            display_name = user.first_name or user.username or str(user.telegram_id)
+            if user.last_name:
+                display_name += f" {user.last_name}"
+            chat_url = f"{mini_app_url}/?lang={user.language or 'uz'}&chat_user_id={user.telegram_id}"
+            safe_name = html.escape(display_name)
+            safe_text = html.escape(text)
+            username_line = f"@{html.escape(user.username)}\n" if user.username else ""
+            body = (
+                f"💬 <b>{safe_name}</b>\n"
+                f"{username_line}"
+                f"\n{safe_text}"
+            )
+            for admin_id in admin_ids:
+                try:
+                    requests.post(
+                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                        json={
+                            'chat_id': admin_id,
+                            'text': body,
+                            'parse_mode': 'HTML',
+                            'reply_markup': {
+                                'inline_keyboard': [[
+                                    {'text': "💬 Ko'rish", 'web_app': {'url': chat_url}}
+                                ]]
+                            },
+                        },
+                        timeout=10,
+                    )
+                except requests.RequestException as e:
+                    logger.error("Chat forward xato (admin %s): %s", admin_id, e)
 
-        display_name = user.first_name or user.username or str(user.telegram_id)
-        if user.last_name:
-            display_name += f" {user.last_name}"
-
-        def utf16len(s: str) -> int:
-            return len(s.encode('utf-16-le')) // 2
-
-        # Build text and entities (offsets in UTF-16 units per Telegram spec)
-        body = ""
-        entities = []
-
-        header_text = "Mini-app chatdan yangi xabar"
-        body += "💬 "
-        entities.append({"type": "bold", "offset": utf16len(body), "length": utf16len(header_text)})
-        body += header_text + "\n\n"
-
-        body += "👤 "
-        name_offset = utf16len(body)
-        body += display_name
-        entities.append({
-            "type": "text_mention",
-            "offset": name_offset,
-            "length": utf16len(display_name),
-            "user": {
-                "id": int(user.telegram_id),
-                "first_name": user.first_name or display_name,
-                "is_bot": False,
+        return Response({
+            'ok': True,
+            'message': {
+                'id': msg.id,
+                'sender': msg.sender,
+                'text': msg.text,
+                'created_at': msg.created_at.isoformat(),
             },
         })
-        body += "\n"
 
-        if user.username:
-            body += f"📱 @{user.username}\n"
-        if user.phone:
-            body += f"☎️ {user.phone}\n"
-        body += f"🆔 {user.telegram_id}\n\n"
-        body += f"💭 {text}\n\n"
-        body += "↩️ Javob berish uchun shu xabarga reply qiling"
 
-        sent_ok = False
-        for admin_id in admin_ids:
-            try:
-                resp = requests.post(
-                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                    json={
-                        "chat_id": admin_id,
-                        "text": body,
-                        "entities": entities,
-                    },
-                    timeout=10,
-                )
-                if resp.ok:
-                    sent_ok = True
-                else:
-                    logger.warning("Telegram sendMessage fail: %s", resp.text)
-            except requests.RequestException as e:
-                logger.error("Telegram forward xato: %s", e)
+class ChatHistoryView(APIView):
+    """Foydalanuvchining chat tarixi."""
 
-        if not sent_ok:
-            return Response({'error': 'Xabar yuborilmadi'}, status=502)
-
-        return Response({'ok': True})
+    def post(self, request):
+        user, _user_data, err = _get_user_from_request(request)
+        if err:
+            return err
+        try:
+            limit = min(500, max(10, int(request.query_params.get('limit') or 200)))
+        except ValueError:
+            limit = 200
+        qs = user.chat_messages.all().order_by('-created_at')[:limit]
+        messages = list(reversed(list(qs)))
+        # admin'dan kelgan xabarlarni o'qilgan deb belgilash
+        unread_ids = [m.id for m in messages if m.sender == 'admin' and not m.is_read]
+        if unread_ids:
+            ChatMessage.objects.filter(id__in=unread_ids).update(is_read=True)
+        return Response({
+            'messages': [{
+                'id': m.id,
+                'sender': m.sender,
+                'text': m.text,
+                'created_at': m.created_at.isoformat(),
+                'is_read': m.is_read,
+            } for m in messages],
+        })

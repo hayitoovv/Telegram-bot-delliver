@@ -1,13 +1,17 @@
 """Admin paneli uchun User CRUD."""
+import logging
+import requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.db.models import Count
+from django.db.models import Count, Max
 from django.conf import settings
 
-from .models import TelegramUser
+from .models import TelegramUser, ChatMessage
 from .serializers import TelegramUserSerializer
 from food_delivery.admin_auth import check_admin, create_admin_token, _valid_admin_ids
 from food_delivery.telegram_auth import verify_telegram_data_detailed
+
+logger = logging.getLogger(__name__)
 
 
 class AdminUserListView(APIView):
@@ -79,6 +83,157 @@ class AdminUserDetailView(APIView):
         data['spent'] = u.orders.aggregate(s=Sum('total_price'))['s'] or 0
         data['orders'] = OrderSerializer(orders_qs, many=True, context={'request': request}).data
         return Response(data)
+
+
+class AdminChatUsersView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def _list(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        qs = (TelegramUser.objects
+              .annotate(last_msg_at=Max('chat_messages__created_at'))
+              .filter(last_msg_at__isnull=False)
+              .order_by('-last_msg_at'))[:80]
+        data = []
+        for u in qs:
+            last = u.chat_messages.order_by('-created_at').first()
+            unread = u.chat_messages.filter(sender='user', is_read=False).count()
+            data.append({
+                'id': u.id,
+                'telegram_id': u.telegram_id,
+                'name': (u.first_name or '') + ((' ' + u.last_name) if u.last_name else ''),
+                'username': u.username,
+                'phone': u.phone,
+                'last_message': last.text if last else '',
+                'last_sender': last.sender if last else None,
+                'last_at': last.created_at.isoformat() if last else None,
+                'unread': unread,
+            })
+        return Response({'users': data})
+
+    def get(self, request):
+        return self._list(request)
+
+    def post(self, request):
+        return self._list(request)
+
+
+class AdminChatHistoryView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def _resolve_target(self, pk, tg_id):
+        if tg_id:
+            try:
+                return TelegramUser.objects.get(telegram_id=tg_id), None
+            except TelegramUser.DoesNotExist:
+                return None, Response({'error': 'Topilmadi'}, status=404)
+        try:
+            return TelegramUser.objects.get(pk=pk), None
+        except TelegramUser.DoesNotExist:
+            return None, Response({'error': 'Topilmadi'}, status=404)
+
+    def _history(self, request, pk, tg_id=None):
+        user, err = check_admin(request)
+        if err:
+            return err
+        target, e = self._resolve_target(pk, tg_id)
+        if e:
+            return e
+        messages = list(target.chat_messages.order_by('created_at'))
+        # Admin ko'rdi — user'dan kelganlarni o'qildi deb belgilash
+        target.chat_messages.filter(sender='user', is_read=False).update(is_read=True)
+        return Response({
+            'user': {
+                'id': target.id,
+                'telegram_id': target.telegram_id,
+                'name': (target.first_name or '') + ((' ' + target.last_name) if target.last_name else ''),
+                'username': target.username,
+                'phone': target.phone,
+            },
+            'messages': [{
+                'id': m.id,
+                'sender': m.sender,
+                'text': m.text,
+                'created_at': m.created_at.isoformat(),
+                'is_read': m.is_read,
+            } for m in messages],
+        })
+
+    def get(self, request, pk):
+        tg_id = request.query_params.get('tg')
+        return self._history(request, pk, int(tg_id) if tg_id and tg_id.lstrip('-').isdigit() else None)
+
+    def post(self, request, pk):
+        tg_id = request.data.get('tg') or request.query_params.get('tg')
+        try:
+            tg_id = int(tg_id) if tg_id else None
+        except (TypeError, ValueError):
+            tg_id = None
+        return self._history(request, pk, tg_id)
+
+
+class AdminChatSendView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, pk):
+        user, err = check_admin(request)
+        if err:
+            return err
+        # Avval pk bo'yicha, topilmasa tg bo'yicha
+        tg_id = request.data.get('tg')
+        try:
+            tg_id = int(tg_id) if tg_id else None
+        except (TypeError, ValueError):
+            tg_id = None
+        target = None
+        if tg_id:
+            try:
+                target = TelegramUser.objects.get(telegram_id=tg_id)
+            except TelegramUser.DoesNotExist:
+                pass
+        if target is None:
+            try:
+                target = TelegramUser.objects.get(pk=pk)
+            except TelegramUser.DoesNotExist:
+                return Response({'error': 'Topilmadi'}, status=404)
+        text = (request.data.get('text') or '').strip()
+        if not text:
+            return Response({'error': 'Xabar bosh'}, status=400)
+        if len(text) > 2000:
+            return Response({'error': 'Xabar juda uzun'}, status=400)
+
+        msg = ChatMessage.objects.create(user=target, sender='admin', text=text)
+
+        # Userga Telegram orqali yuborish
+        bot_token = settings.TELEGRAM_BOT_TOKEN
+        if bot_token:
+            try:
+                requests.post(
+                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                    json={
+                        'chat_id': int(target.telegram_id),
+                        'text': f"💬 Qo'llab-quvvatlash:\n\n{text}",
+                    },
+                    timeout=10,
+                )
+            except requests.RequestException as e:
+                logger.error("Admin → user xabar yuborishda xato: %s", e)
+
+        return Response({
+            'ok': True,
+            'message': {
+                'id': msg.id,
+                'sender': msg.sender,
+                'text': msg.text,
+                'created_at': msg.created_at.isoformat(),
+                'is_read': False,
+            },
+        })
 
 
 class AdminIssueTokenView(APIView):
