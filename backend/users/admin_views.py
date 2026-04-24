@@ -398,6 +398,20 @@ class AdminAdminRemoveView(APIView):
         return self.delete(request, pk)
 
 
+class BotAdminIdsView(APIView):
+    """Bot uchun — barcha admin'lar (env + DB) ro'yxati.
+    Bot o'z identifikatsiyasini TELEGRAM_BOT_TOKEN orqali tasdiqlaydi."""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        provided = (request.data.get('bot_secret') or '').strip()
+        expected = (settings.TELEGRAM_BOT_TOKEN or '').strip()
+        if not provided or provided != expected:
+            return Response({'error': 'Forbidden'}, status=403)
+        return Response({'ids': list(_valid_admin_ids())})
+
+
 class AdminIssueTokenView(APIView):
     """Bot admin panel link yuborishi uchun token generatsiya qiladi.
     Bot o'z identifikatsiyasini TELEGRAM_BOT_TOKEN orqali tasdiqlaydi

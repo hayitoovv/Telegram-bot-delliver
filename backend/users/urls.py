@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin/users/', admin_views.AdminUserListView.as_view()),
     path('admin/users/<int:pk>/', admin_views.AdminUserDetailView.as_view()),
     path('admin/issue-token/', admin_views.AdminIssueTokenView.as_view()),
+    path('bot/admin-ids/', admin_views.BotAdminIdsView.as_view()),
     path('admin/chat/users/', admin_views.AdminChatUsersView.as_view()),
     path('admin/chat/<int:pk>/', admin_views.AdminChatHistoryView.as_view()),
     path('admin/chat/<int:pk>/send/', admin_views.AdminChatSendView.as_view()),

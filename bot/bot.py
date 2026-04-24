@@ -2,6 +2,7 @@
 import os
 import re
 import json
+import time
 import asyncio
 import logging
 import httpx
@@ -23,9 +24,37 @@ BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 MINI_APP_URL = os.getenv('MINI_APP_URL')
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
 ADMIN_PANEL_URL = os.getenv('ADMIN_PANEL_URL', '')
-ADMIN_IDS = {
+ENV_ADMIN_IDS = {
     int(x) for x in os.getenv('TELEGRAM_ADMIN_CHAT_IDS', '').split(',') if x.strip().isdigit()
 }
+
+# Backend'dan yuklangan admin'lar keshi (env + DB)
+_admin_cache = {'ids': set(ENV_ADMIN_IDS), 'at': 0.0}
+
+
+async def _refresh_admin_cache():
+    """Backend'dan admin ID'larni olib, keshni yangilaydi (30s TTL)."""
+    if time.time() - _admin_cache['at'] < 30:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(
+                f"{BACKEND_URL}/api/bot/admin-ids/",
+                json={'bot_secret': BOT_TOKEN},
+            )
+            if resp.status_code == 200:
+                ids = resp.json().get('ids') or []
+                _admin_cache['ids'] = set(int(i) for i in ids) | ENV_ADMIN_IDS
+                _admin_cache['at'] = time.time()
+    except httpx.HTTPError as e:
+        logger.warning("Admin ro'yxatini yangilashda xato: %s", e)
+
+
+async def is_admin_async(user_id: int) -> bool:
+    if user_id in ENV_ADMIN_IDS:
+        return True
+    await _refresh_admin_cache()
+    return user_id in _admin_cache['ids']
 
 # ============================================
 # Translations
@@ -67,7 +96,8 @@ TEXTS = {
 
 
 def is_admin(user_id: int) -> bool:
-    return user_id in ADMIN_IDS
+    """Sinxron tekshirish — env va oxirgi keshdan."""
+    return user_id in ENV_ADMIN_IDS or user_id in _admin_cache['ids']
 
 
 async def get_user_lang(user_id: int) -> str:
@@ -130,14 +160,14 @@ async def get_keyboard(user_id: int, lang: str):
         [KeyboardButton(t(lang, 'change_lang')), KeyboardButton(t(lang, 'chat'))],
         [KeyboardButton(t(lang, 'my_orders'))],
     ]
-    if is_admin(user_id):
-        # Admin panel — token URL'ga qo'shiladi, Telegram WebApp initData kerak emas.
+    # Backend'dan admin ro'yxatini yangilash (env + DB)
+    is_admin_user = await is_admin_async(user_id)
+    if is_admin_user:
         admin_token = await _fetch_admin_token(user_id)
         if admin_token:
             admin_url = f"{MINI_APP_URL.rstrip('/')}/admin-panel/?token={admin_token}"
             keyboard.append([KeyboardButton(t(lang, 'admin_panel'), web_app=WebAppInfo(url=admin_url))])
         else:
-            # Fallback: agar token olishda xato — text tugma (bot link yuboradi)
             keyboard.append([KeyboardButton(t(lang, 'admin_panel'))])
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -222,8 +252,8 @@ async def admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not msg or not msg.from_user:
         return
-    if not is_admin(msg.from_user.id):
-        logger.info("Not admin: %s (admins=%s)", msg.from_user.id, ADMIN_IDS)
+    if not await is_admin_async(msg.from_user.id):
+        logger.info("Not admin: %s", msg.from_user.id)
         return
     if not msg.reply_to_message or not msg.reply_to_message.from_user:
         logger.info("No reply_to_message")
@@ -269,7 +299,7 @@ ADMIN_PANEL_BASE_URL = (MINI_APP_URL or '').rstrip('/') + '/admin-panel/'
 async def admin_panel_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin panel tugmasi/buyrugi — backend'dan token olib, link yuboradi."""
     user = update.effective_user
-    if not is_admin(user.id):
+    if not await is_admin_async(user.id):
         return
 
     try:
