@@ -4,6 +4,7 @@ from . import admin_views
 
 urlpatterns = [
     path('auth/', views.AuthView.as_view(), name='auth'),
+    path('config/', views.PublicConfigView.as_view(), name='public-config'),
     path('chat/', views.ChatView.as_view(), name='chat'),
     path('chat/history/', views.ChatHistoryView.as_view(), name='chat-history'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
@@ -17,4 +18,8 @@ urlpatterns = [
     path('admin/chat/users/', admin_views.AdminChatUsersView.as_view()),
     path('admin/chat/<int:pk>/', admin_views.AdminChatHistoryView.as_view()),
     path('admin/chat/<int:pk>/send/', admin_views.AdminChatSendView.as_view()),
+    path('admin/settings/', admin_views.AdminSettingsView.as_view()),
+    path('admin/admins/', admin_views.AdminAdminsListView.as_view()),
+    path('admin/admins/add/', admin_views.AdminAdminAddView.as_view()),
+    path('admin/admins/<int:pk>/remove/', admin_views.AdminAdminRemoveView.as_view()),
 ]

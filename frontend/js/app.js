@@ -13,7 +13,21 @@ document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.th
 document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f2f2f7');
 
 const API_BASE = window.APP_CONFIG?.API_BASE || window.location.origin;
-const MIN_ORDER_AMOUNT = window.APP_CONFIG?.MIN_ORDER_AMOUNT || 40000;
+let MIN_ORDER_AMOUNT = window.APP_CONFIG?.MIN_ORDER_AMOUNT || 40000;
+
+async function loadPublicConfig() {
+    try {
+        const res = await fetch(`${API_BASE}/api/config/`);
+        if (res.ok) {
+            const cfg = await res.json();
+            if (cfg && Number.isFinite(cfg.min_order_amount)) {
+                MIN_ORDER_AMOUNT = cfg.min_order_amount;
+            }
+        }
+    } catch (e) {
+        console.warn('Config yuklashda xato:', e);
+    }
+}
 
 // Language
 const urlParams = new URLSearchParams(window.location.search);
@@ -2106,6 +2120,7 @@ async function init() {
     updateLangButtonLabel();
     restoreAddressUI();
     setupScrollLockObserver();
+    await loadPublicConfig();
     try {
         const res = await apiPost('auth/', {});
         // tg_id'ni cache qilib currentTgId'da fallback sifatida ishlatish

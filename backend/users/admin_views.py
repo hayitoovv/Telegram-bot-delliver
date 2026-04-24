@@ -6,9 +6,9 @@ from rest_framework.response import Response
 from django.db.models import Count, Max
 from django.conf import settings
 
-from .models import TelegramUser, ChatMessage
+from .models import TelegramUser, ChatMessage, SiteConfig
 from .serializers import TelegramUserSerializer
-from food_delivery.admin_auth import check_admin, create_admin_token, _valid_admin_ids
+from food_delivery.admin_auth import check_admin, create_admin_token, _valid_admin_ids, _env_admin_ids
 from food_delivery.telegram_auth import verify_telegram_data_detailed
 
 logger = logging.getLogger(__name__)
@@ -249,6 +249,153 @@ class AdminChatSendView(APIView):
                 'is_read': False,
             },
         })
+
+
+class AdminSettingsView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        cfg = SiteConfig.get()
+        return Response({
+            'min_order_amount': cfg.min_order_amount,
+            'delivery_fee': cfg.delivery_fee,
+            'support_username': cfg.support_username,
+            'updated_at': cfg.updated_at.isoformat() if cfg.updated_at else None,
+        })
+
+    def patch(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        cfg = SiteConfig.get()
+        for field in ('min_order_amount', 'delivery_fee'):
+            if field in request.data:
+                try:
+                    val = int(request.data.get(field) or 0)
+                    if val < 0:
+                        continue
+                    setattr(cfg, field, val)
+                except (TypeError, ValueError):
+                    continue
+        if 'support_username' in request.data:
+            cfg.support_username = (request.data.get('support_username') or '').strip()[:64].lstrip('@')
+        cfg.save()
+        return Response({
+            'ok': True,
+            'min_order_amount': cfg.min_order_amount,
+            'delivery_fee': cfg.delivery_fee,
+            'support_username': cfg.support_username,
+        })
+
+
+class AdminAdminsListView(APIView):
+    """Panel admin'larini ro'yxati — env va DB'dan birlashtirilgan."""
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        env_ids = _env_admin_ids()
+        result = []
+        # DB'dagi is_admin=True bo'lganlar
+        db_admins = TelegramUser.objects.filter(is_admin=True).order_by('-created_at')
+        seen = set()
+        for u in db_admins:
+            seen.add(u.telegram_id)
+            result.append({
+                'id': u.id,
+                'telegram_id': u.telegram_id,
+                'name': (u.first_name or '') + ((' ' + u.last_name) if u.last_name else ''),
+                'username': u.username,
+                'phone': u.phone,
+                'source': 'env' if u.telegram_id in env_ids else 'db',
+                'removable': u.telegram_id not in env_ids,
+            })
+        # Env'dagi, ammo DB'da yo'q bo'lganlar
+        for tg_id in env_ids:
+            if tg_id in seen:
+                continue
+            try:
+                u = TelegramUser.objects.get(telegram_id=tg_id)
+                name = (u.first_name or '') + ((' ' + u.last_name) if u.last_name else '')
+                username = u.username
+                phone = u.phone
+                db_id = u.id
+            except TelegramUser.DoesNotExist:
+                name = f'Telegram #{tg_id}'
+                username = ''
+                phone = ''
+                db_id = None
+            result.append({
+                'id': db_id,
+                'telegram_id': tg_id,
+                'name': name,
+                'username': username,
+                'phone': phone,
+                'source': 'env',
+                'removable': False,
+            })
+        return Response({'admins': result})
+
+
+class AdminAdminAddView(APIView):
+    """Foydalanuvchini admin qilish — telegram_id yoki username bo'yicha."""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        tg_id = request.data.get('telegram_id')
+        username = (request.data.get('username') or '').lstrip('@').strip()
+        target = None
+        if tg_id:
+            try:
+                target = TelegramUser.objects.get(telegram_id=int(tg_id))
+            except (TelegramUser.DoesNotExist, TypeError, ValueError):
+                pass
+        if target is None and username:
+            target = TelegramUser.objects.filter(username__iexact=username).first()
+        if target is None:
+            return Response({
+                'error': "Foydalanuvchi topilmadi. U botga /start yozgan bo'lishi kerak."
+            }, status=404)
+        if target.is_admin:
+            return Response({'ok': True, 'already': True, 'id': target.id, 'telegram_id': target.telegram_id})
+        target.is_admin = True
+        target.save(update_fields=['is_admin'])
+        return Response({'ok': True, 'id': target.id, 'telegram_id': target.telegram_id})
+
+
+class AdminAdminRemoveView(APIView):
+    """Adminlikdan olib tashlash (env admin'larga ta'sir qilmaydi)."""
+    authentication_classes = []
+    permission_classes = []
+
+    def delete(self, request, pk):
+        user, err = check_admin(request)
+        if err:
+            return err
+        try:
+            target = TelegramUser.objects.get(pk=pk)
+        except TelegramUser.DoesNotExist:
+            return Response({'error': 'Topilmadi'}, status=404)
+        if target.telegram_id in _env_admin_ids():
+            return Response({'error': "Env admin'larni panelda olib tashlab bo'lmaydi"}, status=400)
+        target.is_admin = False
+        target.save(update_fields=['is_admin'])
+        return Response({'ok': True})
+
+    # Mini app va fetch DELETE'ni ba'zan qo'llamasa — POST ga ham ruxsat
+    def post(self, request, pk):
+        return self.delete(request, pk)
 
 
 class AdminIssueTokenView(APIView):

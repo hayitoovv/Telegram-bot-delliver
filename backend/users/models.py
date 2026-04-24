@@ -8,6 +8,7 @@ class TelegramUser(models.Model):
     username = models.CharField(max_length=150, blank=True, default='', verbose_name="Username")
     phone = models.CharField(max_length=20, blank=True, default='', verbose_name="Telefon")
     language = models.CharField(max_length=2, choices=[('uz', "O'zbek"), ('ru', 'Русский')], default='uz', verbose_name="Til")
+    is_admin = models.BooleanField(default=False, verbose_name="Admin")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -16,6 +17,30 @@ class TelegramUser(models.Model):
 
     def __str__(self):
         return f"{self.first_name} ({self.telegram_id})"
+
+
+class SiteConfig(models.Model):
+    """Singleton — sayt sozlamalari."""
+    min_order_amount = models.PositiveIntegerField(default=40000, verbose_name="Minimal buyurtma summasi (UZS)")
+    delivery_fee = models.PositiveIntegerField(default=0, verbose_name="Yetkazib berish narxi (UZS)")
+    support_username = models.CharField(max_length=64, blank=True, default='', verbose_name="Qo'llab-quvvatlash username")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Sayt sozlamasi"
+        verbose_name_plural = "Sayt sozlamalari"
+
+    def __str__(self):
+        return "Sayt sozlamalari"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
 
 
 class ChatMessage(models.Model):

@@ -164,6 +164,8 @@ const VIEW_TITLES = {
     products: 'Mahsulotlar',
     categories: 'Kategoriyalar',
     users: 'Foydalanuvchilar',
+    admins: 'Adminlar',
+    settings: 'Sozlamalar',
 };
 
 function setActiveNav(view) {
@@ -191,6 +193,8 @@ async function loadView(view) {
         else if (view === 'products') await renderProducts(content);
         else if (view === 'categories') await renderCategories(content);
         else if (view === 'users') await renderUsers(content);
+        else if (view === 'admins') await renderAdmins(content);
+        else if (view === 'settings') await renderSettings(content);
     } catch (e) {
         content.innerHTML = `<div class="center-state"><div class="state-icon">⚠️</div><div class="state-text">Xato: ${escapeHtml(e.message)}</div></div>`;
     }
@@ -1150,6 +1154,160 @@ async function openUserDetail(id) {
             `,
             actions: [{ label: 'Yopish', class: 'btn-secondary', onClick: closeModal }],
         });
+    } catch (e) { toast('Xato: ' + e.message); }
+}
+
+// ==========================================================
+// Adminlar
+// ==========================================================
+async function renderAdmins(content) {
+    content.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Adminlar</h2>
+                    <div class="card-subtitle">Admin panelga kirish huquqiga ega foydalanuvchilar</div>
+                </div>
+                <div class="toolbar">
+                    <div class="toolbar-spacer"></div>
+                    <button class="btn-primary" onclick="openAddAdminForm()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Admin qo'shish
+                    </button>
+                </div>
+            </div>
+            <div class="card-body"><div id="admins-list"><div class="center-state"><div class="spinner"></div></div></div></div>
+        </div>
+    `;
+    await fetchAdmins();
+}
+
+async function fetchAdmins() {
+    const d = await api('/api/admin/admins/');
+    const container = document.getElementById('admins-list');
+    const admins = d.admins || [];
+    if (!admins.length) {
+        container.innerHTML = '<div class="center-state"><div class="state-icon">🛡️</div><div class="state-text">Admin yo\'q</div></div>';
+        return;
+    }
+    container.innerHTML = `
+        <div class="table-wrap"><table class="admin-table">
+            <thead><tr><th>Telegram ID</th><th>Ism</th><th>Username</th><th>Telefon</th><th>Turi</th><th></th></tr></thead>
+            <tbody>
+                ${admins.map(a => `
+                    <tr>
+                        <td><b>${a.telegram_id}</b></td>
+                        <td>${escapeHtml(a.name || '-')}</td>
+                        <td>${a.username ? '@' + escapeHtml(a.username) : '-'}</td>
+                        <td>${escapeHtml(a.phone || '-')}</td>
+                        <td>${a.source === 'env'
+                            ? '<span class="badge bg-green">Super admin</span>'
+                            : '<span class="badge bg-gray">Panel admin</span>'}</td>
+                        <td class="row-actions">
+                            ${a.removable && a.id
+                                ? `<button class="btn-row-action danger" onclick="removeAdmin(${a.id})">Olib tashlash</button>`
+                                : '<span style="color:var(--text-light);font-size:12px;">.env dan</span>'}
+                        </td>
+                    </tr>`).join('')}
+            </tbody>
+        </table></div>
+    `;
+}
+
+function openAddAdminForm() {
+    openModal({
+        title: 'Yangi admin qo\'shish',
+        body: `
+            <form class="form" id="admin-add-form" onsubmit="return false;">
+                <div class="form-row">
+                    <label class="form-label">Telegram ID</label>
+                    <input class="input-field" id="adm-tg" type="number" placeholder="1234567890">
+                </div>
+                <div class="form-row">
+                    <label class="form-label">yoki Username (@)</label>
+                    <input class="input-field" id="adm-user" placeholder="username">
+                </div>
+                <div style="padding:0 4px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">
+                    ⚠️ Foydalanuvchi botga kamida bir marta <b>/start</b> yozgan bo'lishi kerak —
+                    aks holda ma'lumotlar bazasida topilmaydi.
+                </div>
+            </form>
+        `,
+        actions: [
+            { label: 'Bekor', class: 'btn-secondary', onClick: closeModal },
+            { label: "Qo'shish", class: 'btn-primary', onClick: async () => {
+                const tg = document.getElementById('adm-tg').value.trim();
+                const user = document.getElementById('adm-user').value.trim();
+                if (!tg && !user) { toast('Telegram ID yoki username kiriting'); return; }
+                try {
+                    const body = {};
+                    if (tg) body.telegram_id = tg;
+                    if (user) body.username = user;
+                    await api('/api/admin/admins/add/', { method: 'POST', body });
+                    toast('Admin qo\'shildi');
+                    closeModal();
+                    await fetchAdmins();
+                } catch (e) { toast('Xato: ' + e.message); }
+            }},
+        ],
+    });
+}
+
+async function removeAdmin(id) {
+    if (!confirm("Adminni olib tashlaysizmi?")) return;
+    try {
+        await api(`/api/admin/admins/${id}/remove/`, { method: 'POST' });
+        toast("Olib tashlandi");
+        await fetchAdmins();
+    } catch (e) { toast('Xato: ' + e.message); }
+}
+
+// ==========================================================
+// Sozlamalar
+// ==========================================================
+async function renderSettings(content) {
+    content.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Sayt sozlamalari</h2>
+                    <div class="card-subtitle">Minimal buyurtma va boshqa parametrlar</div>
+                </div>
+            </div>
+            <div id="settings-body"><div class="center-state"><div class="spinner"></div></div></div>
+        </div>
+    `;
+    const cfg = await api('/api/admin/settings/');
+    document.getElementById('settings-body').innerHTML = `
+        <form class="form" onsubmit="return false;" style="max-width:480px;">
+            <div class="form-row">
+                <label class="form-label">Minimal buyurtma summasi (UZS)</label>
+                <input class="input-field" id="set-min" type="number" min="0" value="${cfg.min_order_amount || 0}">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Yetkazib berish narxi (UZS)</label>
+                <input class="input-field" id="set-delivery" type="number" min="0" value="${cfg.delivery_fee || 0}">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Qo'llab-quvvatlash username (@)</label>
+                <input class="input-field" id="set-support" placeholder="support" value="${escapeHtml(cfg.support_username || '')}">
+            </div>
+            <div style="display:flex;justify-content:flex-end;padding-top:6px;">
+                <button class="btn-primary" onclick="saveSettings()">Saqlash</button>
+            </div>
+        </form>
+    `;
+}
+
+async function saveSettings() {
+    const body = {
+        min_order_amount: document.getElementById('set-min').value || 0,
+        delivery_fee: document.getElementById('set-delivery').value || 0,
+        support_username: document.getElementById('set-support').value,
+    };
+    try {
+        await api('/api/admin/settings/', { method: 'PATCH', body });
+        toast('Saqlandi');
     } catch (e) { toast('Xato: ' + e.message); }
 }
 

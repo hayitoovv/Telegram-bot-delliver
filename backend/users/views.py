@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import TelegramUser, ChatMessage
+from .models import TelegramUser, ChatMessage, SiteConfig
 from .serializers import TelegramUserSerializer
 from food_delivery.telegram_auth import verify_telegram_data_detailed
 
@@ -128,6 +128,20 @@ class LanguageView(APIView):
             return Response({'language': user.language})
         except TelegramUser.DoesNotExist:
             return Response({'language': 'uz'})
+
+
+class PublicConfigView(APIView):
+    """Mini app uchun ochiq config — auth shart emas."""
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        cfg = SiteConfig.get()
+        return Response({
+            'min_order_amount': cfg.min_order_amount,
+            'delivery_fee': cfg.delivery_fee,
+            'support_username': cfg.support_username,
+        })
 
 
 class ChatView(APIView):

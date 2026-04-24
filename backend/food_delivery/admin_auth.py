@@ -32,13 +32,26 @@ def verify_admin_token(token: str) -> int | None:
         return None
 
 
-def _valid_admin_ids():
+def _env_admin_ids():
+    """Env'dagi 'super admin' lar — panelda o'chirilmaydi."""
     out = set()
     for i in settings.TELEGRAM_ADMIN_CHAT_IDS:
         s = str(i).strip()
         if s.lstrip('-').isdigit():
             out.add(int(s))
     return out
+
+
+def _valid_admin_ids():
+    """Env admin'lar + DB is_admin=True bo'lgan foydalanuvchilar."""
+    ids = _env_admin_ids()
+    try:
+        ids.update(
+            TelegramUser.objects.filter(is_admin=True).values_list('telegram_id', flat=True)
+        )
+    except Exception:
+        pass
+    return ids
 
 
 def check_admin(request):

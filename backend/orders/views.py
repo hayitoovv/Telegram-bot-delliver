@@ -68,10 +68,12 @@ class OrderCreateView(APIView):
                 'price': product.price,
             })
 
-        # Minimal summa tekshirish
-        if total_price < settings.MIN_ORDER_AMOUNT:
+        # Minimal summa tekshirish — DB sozlamalaridan
+        from users.models import SiteConfig
+        cfg = SiteConfig.get()
+        if total_price < cfg.min_order_amount:
             return Response(
-                {'error': f'Minimal buyurtma summasi: {settings.MIN_ORDER_AMOUNT:,} UZS'},
+                {'error': f'Minimal buyurtma summasi: {cfg.min_order_amount:,} UZS'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
