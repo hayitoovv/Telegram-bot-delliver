@@ -311,14 +311,17 @@ class AdminAdminsListView(APIView):
         seen = set()
         for u in db_admins:
             seen.add(u.telegram_id)
+            in_env = u.telegram_id in env_ids
             result.append({
                 'id': u.id,
                 'telegram_id': u.telegram_id,
                 'name': (u.first_name or '') + ((' ' + u.last_name) if u.last_name else ''),
                 'username': u.username,
                 'phone': u.phone,
-                'source': 'env' if u.telegram_id in env_ids else 'db',
-                'removable': u.telegram_id not in env_ids,
+                'source': 'env' if in_env else 'db',
+                'is_super_admin': in_env or u.is_super_admin,
+                'removable': not in_env,
+                'super_locked': in_env,
             })
         # Env'dagi, ammo DB'da yo'q bo'lganlar
         for tg_id in env_ids:
@@ -342,7 +345,9 @@ class AdminAdminsListView(APIView):
                 'username': username,
                 'phone': phone,
                 'source': 'env',
+                'is_super_admin': True,
                 'removable': False,
+                'super_locked': True,
             })
         return Response({'admins': result})
 
@@ -358,6 +363,8 @@ class AdminAdminAddView(APIView):
             return err
         tg_id = request.data.get('telegram_id')
         username = (request.data.get('username') or '').lstrip('@').strip()
+        make_super = str(request.data.get('is_super') or '').lower() in ('true', '1', 'on', 'yes')
+
         target = None
         if tg_id:
             try:
@@ -370,11 +377,51 @@ class AdminAdminAddView(APIView):
             return Response({
                 'error': "Foydalanuvchi topilmadi. U botga /start yozgan bo'lishi kerak."
             }, status=404)
-        if target.is_admin:
-            return Response({'ok': True, 'already': True, 'id': target.id, 'telegram_id': target.telegram_id})
         target.is_admin = True
-        target.save(update_fields=['is_admin'])
-        return Response({'ok': True, 'id': target.id, 'telegram_id': target.telegram_id})
+        if make_super:
+            target.is_super_admin = True
+        target.save(update_fields=['is_admin', 'is_super_admin'])
+        return Response({
+            'ok': True,
+            'id': target.id,
+            'telegram_id': target.telegram_id,
+            'is_super_admin': target.is_super_admin,
+        })
+
+
+class AdminAdminPromoteView(APIView):
+    """Mavjud admin'ni super admin qilish yoki demote qilish."""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, pk):
+        user, err = require_super_admin(request)
+        if err:
+            return err
+        try:
+            target = TelegramUser.objects.get(pk=pk)
+        except TelegramUser.DoesNotExist:
+            return Response({'error': 'Topilmadi'}, status=404)
+
+        # Env'dagi super admin'larni demote qilib bo'lmaydi
+        if target.telegram_id in _env_admin_ids():
+            return Response({
+                'error': "Env super admin'larni o'zgartirib bo'lmaydi (.env TELEGRAM_ADMIN_CHAT_IDS)"
+            }, status=400)
+
+        action = (request.data.get('action') or '').lower()
+        if action == 'promote':
+            target.is_admin = True
+            target.is_super_admin = True
+        elif action == 'demote':
+            target.is_super_admin = False
+        else:
+            return Response({'error': "action: 'promote' yoki 'demote'"}, status=400)
+        target.save(update_fields=['is_admin', 'is_super_admin'])
+        return Response({
+            'ok': True,
+            'is_super_admin': target.is_super_admin,
+        })
 
 
 class AdminAdminRemoveView(APIView):

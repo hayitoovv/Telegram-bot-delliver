@@ -1192,26 +1192,54 @@ async function fetchAdmins() {
     }
     container.innerHTML = `
         <div class="table-wrap"><table class="admin-table">
-            <thead><tr><th>Telegram ID</th><th>Ism</th><th>Username</th><th>Telefon</th><th>Turi</th><th></th></tr></thead>
+            <thead><tr><th>Telegram ID</th><th>Ism</th><th>Username</th><th>Telefon</th><th>Roli</th><th>Manba</th><th></th></tr></thead>
             <tbody>
-                ${admins.map(a => `
+                ${admins.map(a => {
+                    const roleBadge = a.is_super_admin
+                        ? '<span class="badge bg-green">Super admin</span>'
+                        : '<span class="badge bg-gray">Admin</span>';
+                    const sourceBadge = a.source === 'env'
+                        ? '<span class="badge" style="background:#FEF3C7;color:#92400E;">.env</span>'
+                        : '<span class="badge" style="background:#DBEAFE;color:#1E40AF;">Panel</span>';
+                    let actions = '';
+                    if (a.super_locked) {
+                        actions = '<span style="color:var(--text-light);font-size:12px;">.env himoyalangan</span>';
+                    } else if (a.id) {
+                        if (a.is_super_admin) {
+                            actions += `<button class="btn-row-action" onclick="promoteAdmin(${a.id}, 'demote')">Oddiy admin qilish</button>`;
+                        } else {
+                            actions += `<button class="btn-row-action" onclick="promoteAdmin(${a.id}, 'promote')">Super qilish</button>`;
+                        }
+                        if (a.removable) {
+                            actions += `<button class="btn-row-action danger" onclick="removeAdmin(${a.id})">Olib tashlash</button>`;
+                        }
+                    }
+                    return `
                     <tr>
                         <td><b>${a.telegram_id}</b></td>
                         <td>${escapeHtml(a.name || '-')}</td>
                         <td>${a.username ? '@' + escapeHtml(a.username) : '-'}</td>
                         <td>${escapeHtml(a.phone || '-')}</td>
-                        <td>${a.source === 'env'
-                            ? '<span class="badge bg-green">Super admin</span>'
-                            : '<span class="badge bg-gray">Panel admin</span>'}</td>
-                        <td class="row-actions">
-                            ${a.removable && a.id
-                                ? `<button class="btn-row-action danger" onclick="removeAdmin(${a.id})">Olib tashlash</button>`
-                                : '<span style="color:var(--text-light);font-size:12px;">.env dan</span>'}
-                        </td>
-                    </tr>`).join('')}
+                        <td>${roleBadge}</td>
+                        <td>${sourceBadge}</td>
+                        <td class="row-actions">${actions}</td>
+                    </tr>`;
+                }).join('')}
             </tbody>
         </table></div>
     `;
+}
+
+async function promoteAdmin(id, action) {
+    const msg = action === 'promote'
+        ? "Bu admin'ni Super admin qilasizmi?"
+        : "Super admin'lik huquqini olib tashlaysizmi?";
+    if (!confirm(msg)) return;
+    try {
+        await api(`/api/admin/admins/${id}/promote/`, { method: 'POST', body: { action } });
+        toast(action === 'promote' ? 'Super admin qilindi' : 'Oddiy admin qilindi');
+        await fetchAdmins();
+    } catch (e) { toast('Xato: ' + e.message); }
 }
 
 function openAddAdminForm() {
@@ -1227,9 +1255,18 @@ function openAddAdminForm() {
                     <label class="form-label">yoki Username (@)</label>
                     <input class="input-field" id="adm-user" placeholder="username">
                 </div>
+                <div class="form-row">
+                    <label class="switch">
+                        <input type="checkbox" id="adm-super">
+                        <span class="switch-track"></span>
+                        <span>Super admin sifatida qo'shish</span>
+                    </label>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:4px;padding-left:54px;">
+                        Super admin: barcha sozlamalar va admin'larni boshqarish huquqi
+                    </div>
+                </div>
                 <div style="padding:0 4px;color:var(--text-muted);font-size:12.5px;line-height:1.5;">
-                    ⚠️ Foydalanuvchi botga kamida bir marta <b>/start</b> yozgan bo'lishi kerak —
-                    aks holda ma'lumotlar bazasida topilmaydi.
+                    ⚠️ Foydalanuvchi botga kamida bir marta <b>/start</b> yozgan bo'lishi kerak.
                 </div>
             </form>
         `,
@@ -1238,13 +1275,14 @@ function openAddAdminForm() {
             { label: "Qo'shish", class: 'btn-primary', onClick: async () => {
                 const tg = document.getElementById('adm-tg').value.trim();
                 const user = document.getElementById('adm-user').value.trim();
+                const isSuper = document.getElementById('adm-super').checked;
                 if (!tg && !user) { toast('Telegram ID yoki username kiriting'); return; }
                 try {
-                    const body = {};
+                    const body = { is_super: isSuper };
                     if (tg) body.telegram_id = tg;
                     if (user) body.username = user;
                     await api('/api/admin/admins/add/', { method: 'POST', body });
-                    toast('Admin qo\'shildi');
+                    toast(isSuper ? 'Super admin qo\'shildi' : 'Admin qo\'shildi');
                     closeModal();
                     await fetchAdmins();
                 } catch (e) { toast('Xato: ' + e.message); }

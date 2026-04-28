@@ -9,6 +9,7 @@ class TelegramUser(models.Model):
     phone = models.CharField(max_length=20, blank=True, default='', verbose_name="Telefon")
     language = models.CharField(max_length=2, choices=[('uz', "O'zbek"), ('ru', 'Русский')], default='uz', verbose_name="Til")
     is_admin = models.BooleanField(default=False, verbose_name="Admin")
+    is_super_admin = models.BooleanField(default=False, verbose_name="Super admin")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

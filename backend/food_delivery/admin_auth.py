@@ -55,10 +55,18 @@ def _valid_admin_ids():
 
 
 def is_super_admin(tg_id: int) -> bool:
-    """Super admin — faqat .env'dagi asosiy admin'lar."""
+    """Super admin — env'dagi yoki DB'da is_super_admin=True bo'lganlar."""
     try:
-        return int(tg_id) in _env_admin_ids()
+        tg_id = int(tg_id)
     except (TypeError, ValueError):
+        return False
+    if tg_id in _env_admin_ids():
+        return True
+    try:
+        return TelegramUser.objects.filter(
+            telegram_id=tg_id, is_super_admin=True
+        ).exists()
+    except Exception:
         return False
 
 

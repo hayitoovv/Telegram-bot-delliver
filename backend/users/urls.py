@@ -24,4 +24,5 @@ urlpatterns = [
     path('admin/admins/', admin_views.AdminAdminsListView.as_view()),
     path('admin/admins/add/', admin_views.AdminAdminAddView.as_view()),
     path('admin/admins/<int:pk>/remove/', admin_views.AdminAdminRemoveView.as_view()),
+    path('admin/admins/<int:pk>/promote/', admin_views.AdminAdminPromoteView.as_view()),
 ]
