@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import Category, Product
-from food_delivery.admin_auth import check_admin
+from food_delivery.admin_auth import check_admin, require_super_admin
 
 
 class _BaseAdminView(APIView):
@@ -110,7 +110,7 @@ class AdminCategoryDetailView(_BaseAdminView):
         return Response(category_to_dict(cat, request))
 
     def delete(self, request, pk):
-        user, err = check_admin(request)
+        user, err = require_super_admin(request)
         if err:
             return err
         cat, e = self._get(pk)
@@ -225,7 +225,7 @@ class AdminProductDetailView(_BaseAdminView):
         return Response(product_to_dict(product, request))
 
     def delete(self, request, pk):
-        user, err = check_admin(request)
+        user, err = require_super_admin(request)
         if err:
             return err
         product, e = self._get(pk)
@@ -244,6 +244,11 @@ class AdminProductBulkView(_BaseAdminView):
         action = request.data.get('action')
         if not ids or action not in ('activate', 'deactivate', 'delete'):
             return Response({'error': "Noto'g'ri so'rov"}, status=400)
+        # Delete faqat super admin
+        if action == 'delete':
+            _, err2 = require_super_admin(request)
+            if err2:
+                return err2
         qs = Product.objects.filter(id__in=ids)
         count = qs.count()
         if action == 'activate':
@@ -264,6 +269,10 @@ class AdminCategoryBulkView(_BaseAdminView):
         action = request.data.get('action')
         if not ids or action not in ('activate', 'deactivate', 'delete'):
             return Response({'error': "Noto'g'ri so'rov"}, status=400)
+        if action == 'delete':
+            _, err2 = require_super_admin(request)
+            if err2:
+                return err2
         qs = Category.objects.filter(id__in=ids)
         count = qs.count()
         if action == 'activate':

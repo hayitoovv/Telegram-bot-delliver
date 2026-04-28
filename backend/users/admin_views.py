@@ -8,7 +8,10 @@ from django.conf import settings
 
 from .models import TelegramUser, ChatMessage, SiteConfig
 from .serializers import TelegramUserSerializer
-from food_delivery.admin_auth import check_admin, create_admin_token, _valid_admin_ids, _env_admin_ids
+from food_delivery.admin_auth import (
+    check_admin, create_admin_token, _valid_admin_ids, _env_admin_ids,
+    is_super_admin, require_super_admin,
+)
 from food_delivery.telegram_auth import verify_telegram_data_detailed
 
 logger = logging.getLogger(__name__)
@@ -268,7 +271,7 @@ class AdminSettingsView(APIView):
         })
 
     def patch(self, request):
-        user, err = check_admin(request)
+        user, err = require_super_admin(request)
         if err:
             return err
         cfg = SiteConfig.get()
@@ -298,7 +301,7 @@ class AdminAdminsListView(APIView):
     permission_classes = []
 
     def get(self, request):
-        user, err = check_admin(request)
+        user, err = require_super_admin(request)
         if err:
             return err
         env_ids = _env_admin_ids()
@@ -350,7 +353,7 @@ class AdminAdminAddView(APIView):
     permission_classes = []
 
     def post(self, request):
-        user, err = check_admin(request)
+        user, err = require_super_admin(request)
         if err:
             return err
         tg_id = request.data.get('telegram_id')
@@ -380,7 +383,7 @@ class AdminAdminRemoveView(APIView):
     permission_classes = []
 
     def delete(self, request, pk):
-        user, err = check_admin(request)
+        user, err = require_super_admin(request)
         if err:
             return err
         try:
@@ -396,6 +399,27 @@ class AdminAdminRemoveView(APIView):
     # Mini app va fetch DELETE'ni ba'zan qo'llamasa — POST ga ham ruxsat
     def post(self, request, pk):
         return self.delete(request, pk)
+
+
+class AdminWhoAmIView(APIView):
+    """Admin panel uchun — joriy admin rolini qaytaradi."""
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        return Response({
+            'id': user.id,
+            'telegram_id': user.telegram_id,
+            'name': (user.first_name or '') + ((' ' + user.last_name) if user.last_name else ''),
+            'username': user.username,
+            'is_super_admin': is_super_admin(user.telegram_id),
+        })
+
+    def post(self, request):
+        return self.get(request)
 
 
 class BotAdminIdsView(APIView):

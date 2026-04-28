@@ -705,7 +705,7 @@ async function renderProducts(content) {
                     <div class="bulk-bar-spacer"></div>
                     <button class="btn-secondary" onclick="bulkProducts('activate')">Faollashtirish</button>
                     <button class="btn-secondary" onclick="bulkProducts('deactivate')">Faolsizlantirish</button>
-                    <button class="btn-danger" onclick="bulkProducts('delete')">O'chirish</button>
+                    ${isSuperAdmin() ? `<button class="btn-danger" onclick="bulkProducts('delete')">O'chirish</button>` : ''}
                     <button class="btn-secondary" onclick="productsState.selected.clear(); renderProductsTable(window.__prodCache||[]);">Bekor</button>
                 </div>
             </div>
@@ -769,7 +769,7 @@ function renderProductsTable(products) {
                         <td><span class="badge ${p.is_active ? 'bg-green' : 'bg-gray'}">${p.is_active ? 'Faol' : 'Faolsiz'}</span></td>
                         <td class="row-actions">
                             <button class="btn-row-action" data-action="edit" data-pid="${p.id}">Tahrirlash</button>
-                            <button class="btn-row-action danger" onclick="deleteProduct(${p.id})">O'chirish</button>
+                            ${isSuperAdmin() ? `<button class="btn-row-action danger" onclick="deleteProduct(${p.id})">O'chirish</button>` : ''}
                         </td>
                     </tr>`).join('')}
             </tbody>
@@ -912,7 +912,7 @@ async function renderCategories(content) {
                     <div class="bulk-bar-spacer"></div>
                     <button class="btn-secondary" onclick="bulkCategories('activate')">Faollashtirish</button>
                     <button class="btn-secondary" onclick="bulkCategories('deactivate')">Faolsizlantirish</button>
-                    <button class="btn-danger" onclick="bulkCategories('delete')">O'chirish</button>
+                    ${isSuperAdmin() ? `<button class="btn-danger" onclick="bulkCategories('delete')">O'chirish</button>` : ''}
                     <button class="btn-secondary" onclick="categoriesState.selected.clear(); renderCategoriesTable(categoriesCache||[]);">Bekor</button>
                 </div>
             </div>
@@ -948,7 +948,7 @@ function renderCategoriesTable(cats) {
                         <td><span class="badge ${c.is_active ? 'bg-green' : 'bg-gray'}">${c.is_active ? 'Faol' : 'Faolsiz'}</span></td>
                         <td class="row-actions">
                             <button class="btn-row-action" data-action="edit" data-cid="${c.id}">Tahrirlash</button>
-                            <button class="btn-row-action danger" onclick="deleteCategory(${c.id})">O'chirish</button>
+                            ${isSuperAdmin() ? `<button class="btn-row-action danger" onclick="deleteCategory(${c.id})">O'chirish</button>` : ''}
                         </td>
                     </tr>`).join('')}
             </tbody>
@@ -1373,11 +1373,34 @@ function closeModal() {
 // ==========================================================
 // Init / Auth
 // ==========================================================
+let CURRENT_ADMIN = { is_super_admin: false, name: '', telegram_id: null };
+
+function isSuperAdmin() {
+    return !!CURRENT_ADMIN.is_super_admin;
+}
+
+function applyRolePermissions() {
+    // Super admin emas bo'lsa — Adminlar va Sozlamalar bo'limlarini yashirish
+    if (!isSuperAdmin()) {
+        document.querySelectorAll('.nav-item').forEach(el => {
+            if (['admins', 'settings'].includes(el.dataset.view)) {
+                el.style.display = 'none';
+            }
+        });
+    }
+}
+
 async function init() {
     try {
+        // Avval rolni olish
+        try {
+            const me = await api('/api/admin/whoami/');
+            CURRENT_ADMIN = me;
+            document.getElementById('topbar-user').textContent =
+                (me.name || '').trim() || (tg?.initDataUnsafe?.user?.first_name) || 'Admin';
+        } catch {}
+        applyRolePermissions();
         await loadView('dashboard');
-        const u = tg?.initDataUnsafe?.user;
-        if (u) document.getElementById('topbar-user').textContent = u.first_name || 'Admin';
     } catch (e) {
         showAuthError(e);
     }

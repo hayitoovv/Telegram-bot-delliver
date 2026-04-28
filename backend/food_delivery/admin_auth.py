@@ -54,6 +54,14 @@ def _valid_admin_ids():
     return ids
 
 
+def is_super_admin(tg_id: int) -> bool:
+    """Super admin — faqat .env'dagi asosiy admin'lar."""
+    try:
+        return int(tg_id) in _env_admin_ids()
+    except (TypeError, ValueError):
+        return False
+
+
 def check_admin(request):
     """
     Request'dan admin'ni tekshiradi. Token yoki initData orqali.
@@ -107,5 +115,22 @@ def check_admin(request):
                 'first_name': user_data.get('first_name', 'Admin'),
                 'username': user_data.get('username', ''),
             },
+        )
+    # Auth qilgan admin'ning tg_id'sini user object'ga biriktiramiz
+    user._admin_tg_id = tg_id
+    return user, None
+
+
+def require_super_admin(request):
+    """View ichida chaqiriladi — super admin bo'lmasa 403 qaytaradi."""
+    from rest_framework.response import Response
+    from rest_framework import status as _s
+    user, err = check_admin(request)
+    if err:
+        return None, err
+    if not is_super_admin(user.telegram_id):
+        return None, Response(
+            {'error': "Bu amal faqat super admin uchun (.env TELEGRAM_ADMIN_CHAT_IDS)"},
+            status=_s.HTTP_403_FORBIDDEN,
         )
     return user, None
