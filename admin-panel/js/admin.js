@@ -74,23 +74,23 @@ async function api(path, { method = 'GET', body = null, form = false, query = nu
     const token = getAdminToken();
     let url = `${API_BASE}${path}`;
     if (method === 'GET' || query) {
+        // Token header orqali yuboriladi — query'ga qo'shmaymiz (access log'da qolmasligi uchun).
+        // initData fallback faqat tokensiz holatda.
         const params = new URLSearchParams(query || {});
-        if (token) params.set('admin_token', token);
-        else if (initData) params.set('initData', initData);
-        url += (path.includes('?') ? '&' : '?') + params.toString();
+        if (!token && initData) params.set('initData', initData);
+        const qs = params.toString();
+        if (qs) url += (path.includes('?') ? '&' : '?') + qs;
     }
     const opts = { method, headers: {} };
     if (token) opts.headers['X-Admin-Token'] = token;
     if (method !== 'GET') {
         if (form) {
-            if (token) form.append('admin_token', token);
-            else if (initData) form.append('initData', initData);
+            if (!token && initData) form.append('initData', initData);
             opts.body = form;
         } else {
             opts.headers['Content-Type'] = 'application/json';
             const payload = { ...(body || {}) };
-            if (token) payload.admin_token = token;
-            else if (initData) payload.initData = initData;
+            if (!token && initData) payload.initData = initData;
             opts.body = JSON.stringify(payload);
         }
     }
@@ -122,9 +122,12 @@ function fmtDate(iso) {
         + ', ' + d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
 }
 function escapeHtml(s) {
-    const div = document.createElement('div');
-    div.textContent = s == null ? '' : String(s);
-    return div.innerHTML;
+    return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 function iconStat(name) {
     const icons = {
@@ -593,6 +596,8 @@ async function bulkUpdateOrders() {
 }
 
 async function openOrderDetail(id) {
+    // Agar boshqa modal ochiq bo'lsa (masalan, user_detail) — uni yopib ochamiz
+    closeModal();
     try {
         const o = await api(`/api/admin/orders/${id}/`);
         const u = o.user_detail || {};
@@ -874,7 +879,10 @@ function openProductForm(p) {
         input?.addEventListener('change', e => {
             const file = e.target.files[0];
             if (!file) return;
-            document.getElementById('prod-img-preview').innerHTML = `<img src="${URL.createObjectURL(file)}">`;
+            const preview = document.getElementById('prod-img-preview');
+            const oldImg = preview.querySelector('img');
+            if (oldImg && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
+            preview.innerHTML = `<img src="${URL.createObjectURL(file)}">`;
         });
     }, 50);
 }
@@ -1043,7 +1051,10 @@ function openCategoryForm(c) {
         input?.addEventListener('change', e => {
             const file = e.target.files[0];
             if (!file) return;
-            document.getElementById('cat-img-preview').innerHTML = `<img src="${URL.createObjectURL(file)}">`;
+            const preview = document.getElementById('cat-img-preview');
+            const oldImg = preview.querySelector('img');
+            if (oldImg && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
+            preview.innerHTML = `<img src="${URL.createObjectURL(file)}">`;
         });
     }, 50);
 }
@@ -1273,13 +1284,13 @@ function openAddAdminForm() {
         actions: [
             { label: 'Bekor', class: 'btn-secondary', onClick: closeModal },
             { label: "Qo'shish", class: 'btn-primary', onClick: async () => {
-                const tg = document.getElementById('adm-tg').value.trim();
+                const tgId = document.getElementById('adm-tg').value.trim();
                 const user = document.getElementById('adm-user').value.trim();
                 const isSuper = document.getElementById('adm-super').checked;
-                if (!tg && !user) { toast('Telegram ID yoki username kiriting'); return; }
+                if (!tgId && !user) { toast('Telegram ID yoki username kiriting'); return; }
                 try {
                     const body = { is_super: isSuper };
-                    if (tg) body.telegram_id = tg;
+                    if (tgId) body.telegram_id = tgId;
                     if (user) body.username = user;
                     await api('/api/admin/admins/add/', { method: 'POST', body });
                     toast(isSuper ? 'Super admin qo\'shildi' : 'Admin qo\'shildi');
@@ -1405,7 +1416,12 @@ function openModal({ title, body, actions, size }) {
     });
 }
 function closeModal() {
-    document.getElementById('modal-root').innerHTML = '';
+    const root = document.getElementById('modal-root');
+    // Modal ichidagi blob URL'larni revoke qilish (memory leak oldi)
+    root.querySelectorAll('img').forEach(img => {
+        if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+    });
+    root.innerHTML = '';
 }
 
 // ==========================================================
@@ -1430,13 +1446,19 @@ function applyRolePermissions() {
 
 async function init() {
     try {
-        // Avval rolni olish
+        // Avval rolni olish — 403 bo'lsa darrov auth gate ko'rsatamiz.
+        // Network/boshqa xatolar uchun esa default rolda davom etamiz.
         try {
             const me = await api('/api/admin/whoami/');
             CURRENT_ADMIN = me;
             document.getElementById('topbar-user').textContent =
                 (me.name || '').trim() || (tg?.initDataUnsafe?.user?.first_name) || 'Admin';
-        } catch {}
+        } catch (e) {
+            if (e.status === 403) {
+                showAuthError(e);
+                return;
+            }
+        }
         applyRolePermissions();
         await loadView('dashboard');
     } catch (e) {
