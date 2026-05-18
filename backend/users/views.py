@@ -1,5 +1,6 @@
 import html
 import logging
+import threading
 import requests
 from django.conf import settings
 from rest_framework.views import APIView
@@ -9,6 +10,7 @@ from rest_framework import status
 from .models import TelegramUser, ChatMessage, SiteConfig
 from .serializers import TelegramUserSerializer
 from food_delivery.telegram_auth import verify_telegram_data_detailed
+from food_delivery.admin_auth import _valid_admin_ids
 
 logger = logging.getLogger(__name__)
 
@@ -36,15 +38,6 @@ def _get_user_from_request(request):
     return user, user_data, None
 
 
-def _valid_admin_ids():
-    out = []
-    for i in settings.TELEGRAM_ADMIN_CHAT_IDS:
-        s = str(i).strip()
-        if s.lstrip('-').isdigit():
-            out.append(int(s))
-    return out
-
-
 class AuthView(APIView):
     def post(self, request):
         user, user_data, err = _get_user_from_request(request)
@@ -64,7 +57,7 @@ class AuthView(APIView):
         return Response({
             'user': TelegramUserSerializer(user).data,
             'is_new': False,
-            'is_admin': int(user.telegram_id) in set(_valid_admin_ids()),
+            'is_admin': int(user.telegram_id) in _valid_admin_ids(),
         })
 
 
@@ -178,24 +171,27 @@ class ChatView(APIView):
                 f"{username_line}"
                 f"\n{safe_text}"
             )
-            for admin_id in admin_ids:
-                try:
-                    requests.post(
-                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                        json={
-                            'chat_id': admin_id,
-                            'text': body,
-                            'parse_mode': 'HTML',
-                            'reply_markup': {
-                                'inline_keyboard': [[
-                                    {'text': "💬 Ko'rish", 'web_app': {'url': chat_url}}
-                                ]]
+            def _forward():
+                for admin_id in admin_ids:
+                    try:
+                        requests.post(
+                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                            json={
+                                'chat_id': admin_id,
+                                'text': body,
+                                'parse_mode': 'HTML',
+                                'reply_markup': {
+                                    'inline_keyboard': [[
+                                        {'text': "💬 Ko'rish", 'web_app': {'url': chat_url}}
+                                    ]]
+                                },
                             },
-                        },
-                        timeout=10,
-                    )
-                except requests.RequestException as e:
-                    logger.error("Chat forward xato (admin %s): %s", admin_id, e)
+                            timeout=10,
+                        )
+                    except requests.RequestException as e:
+                        logger.error("Chat forward xato (admin %s): %s", admin_id, e)
+
+            threading.Thread(target=_forward, daemon=True).start()
 
         return Response({
             'ok': True,

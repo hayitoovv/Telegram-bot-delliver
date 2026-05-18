@@ -86,10 +86,9 @@ def check_admin(request):
     token = token_body or token_query or token_header
     tg_id = verify_admin_token(token) if token else None
 
-    logger.error(
-        "[ADMIN-CHECK] path=%s method=%s ct=%s tok_body=%d tok_query=%d tok_header=%d tg_id=%s",
+    logger.debug(
+        "[ADMIN-CHECK] path=%s method=%s tok_body=%d tok_query=%d tok_header=%d tg_id=%s",
         request.path, request.method,
-        request.content_type if hasattr(request, 'content_type') else '-',
         len(token_body), len(token_query), len(token_header),
         tg_id,
     )

@@ -3,7 +3,7 @@ import logging
 import requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.db.models import Count, Max
+from django.db.models import Count, Max, Q
 from django.conf import settings
 
 from .models import TelegramUser, ChatMessage, SiteConfig
@@ -32,9 +32,13 @@ class AdminUserListView(APIView):
               .order_by('-created_at'))
         q = (request.query_params.get('q') or '').strip()
         if q:
-            qs = qs.filter(first_name__icontains=q) | qs.filter(
-                last_name__icontains=q) | qs.filter(username__icontains=q) | qs.filter(
-                phone__icontains=q) | qs.filter(telegram_id__icontains=q)
+            qs = qs.filter(
+                Q(first_name__icontains=q)
+                | Q(last_name__icontains=q)
+                | Q(username__icontains=q)
+                | Q(phone__icontains=q)
+                | Q(telegram_id__icontains=q)
+            )
 
         total = qs.count()
         try:

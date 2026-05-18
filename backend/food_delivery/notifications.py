@@ -4,16 +4,9 @@ import logging
 import requests
 from django.conf import settings
 
+from food_delivery.admin_auth import _valid_admin_ids
+
 logger = logging.getLogger(__name__)
-
-
-def _valid_admin_ids():
-    out = []
-    for i in settings.TELEGRAM_ADMIN_CHAT_IDS:
-        s = str(i).strip()
-        if s.lstrip('-').isdigit():
-            out.append(int(s))
-    return out
 
 
 def notify_admins_new_order(order):

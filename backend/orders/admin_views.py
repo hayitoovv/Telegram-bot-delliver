@@ -2,7 +2,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, F, Q
 
 from .models import Order
 from .serializers import OrderSerializer
@@ -29,9 +29,12 @@ class AdminOrderListView(_BaseAdminView):
             qs = qs.filter(status=status_filter)
         q = (request.query_params.get('q') or '').strip()
         if q:
-            qs = qs.filter(user__first_name__icontains=q) | qs.filter(
-                user__username__icontains=q) | qs.filter(id__icontains=q) | qs.filter(
-                address__icontains=q)
+            qs = qs.filter(
+                Q(user__first_name__icontains=q)
+                | Q(user__username__icontains=q)
+                | Q(id__icontains=q)
+                | Q(address__icontains=q)
+            )
 
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
@@ -80,31 +83,20 @@ class AdminOrderDetailView(_BaseAdminView):
         return Response(data)
 
     def patch(self, request, pk):
-        import logging
-        lgr = logging.getLogger(__name__)
+        user, err = check_admin(request)
+        if err:
+            return err
         try:
-            user, err = check_admin(request)
-            if err:
-                lgr.error("[PATCH-ORDER] check_admin FAILED for pk=%s", pk)
-                return err
-            try:
-                order = Order.objects.get(pk=pk)
-            except Order.DoesNotExist:
-                lgr.error("[PATCH-ORDER] order %s NOT FOUND", pk)
-                return Response({'error': 'Topilmadi'}, status=404)
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'error': 'Topilmadi'}, status=404)
 
-            new_status = request.data.get('status')
-            lgr.error("[PATCH-ORDER] pk=%s new_status=%s allowed=%s",
-                      pk, new_status, new_status in ALLOWED_STATUSES)
-            if new_status and new_status in ALLOWED_STATUSES:
-                order.status = new_status
-                order.save(update_fields=['status'])
-                lgr.error("[PATCH-ORDER] SAVED pk=%s status=%s", pk, new_status)
-                return Response(OrderSerializer(order, context={'request': request}).data)
-            return Response({'error': "Noto'g'ri status"}, status=400)
-        except Exception as e:
-            lgr.error("[PATCH-ORDER] EXCEPTION pk=%s: %s", pk, e, exc_info=True)
-            raise
+        new_status = request.data.get('status')
+        if new_status and new_status in ALLOWED_STATUSES:
+            order.status = new_status
+            order.save(update_fields=['status'])
+            return Response(OrderSerializer(order, context={'request': request}).data)
+        return Response({'error': "Noto'g'ri status"}, status=400)
 
 
 class AdminOrderBulkStatusView(_BaseAdminView):
@@ -186,7 +178,7 @@ class AdminDashboardView(_BaseAdminView):
         top_products_raw = (
             OrderItem.objects
             .values('product_id', 'product_name')
-            .annotate(ordered=Sum('quantity'), revenue=Sum('price'))
+            .annotate(ordered=Sum('quantity'), revenue=Sum(F('price') * F('quantity')))
             .order_by('-ordered')[:5]
         )
         top_products = [
