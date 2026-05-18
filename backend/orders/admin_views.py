@@ -2,7 +2,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import Sum, Count, F, Q
+from django.db.models import Sum, Count, F, Q, IntegerField
 
 from .models import Order
 from .serializers import OrderSerializer
@@ -178,7 +178,10 @@ class AdminDashboardView(_BaseAdminView):
         top_products_raw = (
             OrderItem.objects
             .values('product_id', 'product_name')
-            .annotate(ordered=Sum('quantity'), revenue=Sum(F('price') * F('quantity')))
+            .annotate(
+                ordered=Sum('quantity'),
+                revenue=Sum(F('price') * F('quantity'), output_field=IntegerField()),
+            )
             .order_by('-ordered')[:5]
         )
         top_products = [
