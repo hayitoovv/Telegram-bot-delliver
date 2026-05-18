@@ -298,8 +298,13 @@ function readHashInitData() {
 
 const INIT_DATA_CACHE_KEY = 'tg_init_data_cache';
 
+// Birinchi muvaffaqiyatli olingan initData — Telegram SDK uni yo'qotib qo'ysa
+// (ba'zan reopen/expand'dan keyin) shu memory'dagi nusxa ishlatiladi.
+let __initDataMemory = '';
+
 function cacheInitData(value) {
     if (!value) return;
+    __initDataMemory = value;
     try {
         localStorage.setItem(INIT_DATA_CACHE_KEY, JSON.stringify({ value, at: Date.now() }));
     } catch {}
@@ -331,9 +336,15 @@ function getInitData() {
         return hashData;
     }
 
+    // Memory'dagi oxirgi muvaffaqiyatli initData (shu sessiya davomida)
+    if (__initDataMemory) return __initDataMemory;
+
     // Oxirgi ishlatilgan initData — sahifa reload bo'lsa yoki hash yo'qolsa
     const cached = readCachedInitData();
-    if (cached) return cached;
+    if (cached) {
+        __initDataMemory = cached;
+        return cached;
+    }
 
     // DEBUG fallback (backend'da DEBUG=True bo'lsa): faqat user.id mavjud bo'lsa
     const u = tg.initDataUnsafe?.user;
@@ -350,6 +361,25 @@ function getInitData() {
                  'initDataUnsafe=', tg.initDataUnsafe,
                  'hash=', window.location.hash.substring(0, 200));
     return '';
+}
+
+function hasValidInitData() {
+    const v = getInitData();
+    if (!v) return false;
+    // JSON DEBUG-only fallback — production'da rad qilinadi
+    if (v.startsWith('{')) return false;
+    return true;
+}
+
+// Sessiya muddati tugagan/initData yo'qolgan holatda foydalanuvchiga aniq
+// xabar berib, botdan qayta ochishni so'raymiz.
+function showReopenPrompt() {
+    const isRu = LANG === 'ru';
+    const text = isRu
+        ? 'Сессия истекла. Откройте бота и нажмите "Меню" заново.'
+        : 'Sessiya muddati tugagan. Botdan "Menyu" tugmasi orqali qaytadan oching.';
+    showToast(text);
+    tg.HapticFeedback?.notificationOccurred('error');
 }
 
 async function apiGet(endpoint) {
@@ -389,6 +419,16 @@ async function apiPost(endpoint, data) {
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        // Sessiya tugagan/initData yaroqsiz — eski keshni tozalab,
+        // foydalanuvchini botdan qayta ochishga undaymiz
+        if (res.status === 403 && err.reason && (
+            err.reason.startsWith('empty_init_data') ||
+            err.reason.startsWith('auth_date_expired') ||
+            err.reason.startsWith('hash_mismatch')
+        )) {
+            try { localStorage.removeItem(INIT_DATA_CACHE_KEY); } catch {}
+            __initDataMemory = '';
+        }
         const baseMsg = err.error || `API xato: ${res.status}`;
         const friendly = translateAuthReason(err.reason);
         const suffix = friendly ? `: ${friendly}` : (err.reason ? ` (${err.reason})` : '');
@@ -2001,6 +2041,13 @@ async function submitOrder() {
         return;
     }
 
+    // initData mavjudligini tekshirish — agar yo'q bo'lsa, foydalanuvchini
+    // botdan qayta ochishga yo'naltirish (so'rovni bekorga yubormaymiz)
+    if (!hasValidInitData()) {
+        showReopenPrompt();
+        return;
+    }
+
     // Telefon raqam kiritilmagan bo'lsa — avval so'rash
     if (!getUserPhone()) {
         pendingAfterPhone = () => doSubmitOrder();
@@ -2012,6 +2059,11 @@ async function submitOrder() {
 }
 
 async function doSubmitOrder() {
+    if (!hasValidInitData()) {
+        showReopenPrompt();
+        return;
+    }
+
     const comment = document.getElementById('comment-input').value.trim();
     const entrance = document.getElementById('checkout-entrance').value.trim();
     const floor = document.getElementById('checkout-floor').value.trim();
@@ -2161,6 +2213,11 @@ async function init() {
     restoreAddressUI();
     setupScrollLockObserver();
     await loadPublicConfig();
+
+    // tg.initData mavjud bo'lsa, darrov keshlab qo'yamiz — keyinroq SDK uni
+    // yo'qotib qo'ysa ham apiPost'lar ishlasin uchun
+    if (tg.initData && tg.initData.length > 0) cacheInitData(tg.initData);
+
     try {
         const res = await apiPost('auth/', {});
         // tg_id'ni cache qilib currentTgId'da fallback sifatida ishlatish
@@ -2177,6 +2234,13 @@ async function init() {
         }
     } catch (e) {
         console.error('Auth xato:', e);
+        // Boshlanish'da auth tushib qolsa — ehtimol initData yo'q yoki bot
+        // token o'zgargan. Foydalanuvchiga aniq xabar beramiz.
+        if (e.message && (e.message.includes('init_data') ||
+                          e.message.includes('Menyu') ||
+                          e.message.includes('Меню'))) {
+            showReopenPrompt();
+        }
     }
     await loadCategories();
     refreshActiveOrdersBanner();
