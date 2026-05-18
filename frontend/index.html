@@ -29,14 +29,6 @@
     </script>
     <link rel="stylesheet" href="/app/css/style.css?v=53">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        (function() {
-            const lang = new URLSearchParams(window.location.search).get('lang') === 'ru' ? 'ru_RU' : 'uz_UZ';
-            const script = document.createElement('script');
-            script.src = 'https://api-maps.yandex.ru/2.1/?apikey=YOUR_YANDEX_API_KEY&lang=' + lang;
-            document.head.appendChild(script);
-        })();
-    </script>
 </head>
 <body>
     <!-- Top bar: search + address -->
@@ -791,6 +783,6 @@
         </div>
     </div>
 
-    <script src="/app/js/app.js?v=48"></script>
+    <script src="/app/js/app.js?v=49"></script>
 </body>
 </html>

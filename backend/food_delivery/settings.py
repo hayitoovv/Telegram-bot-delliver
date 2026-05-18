@@ -109,3 +109,6 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '').strip()
 TELEGRAM_ADMIN_CHAT_IDS = os.getenv('TELEGRAM_ADMIN_CHAT_IDS', '').strip().split(',')
 MINI_APP_URL = os.getenv('MINI_APP_URL', '').strip()
 MIN_ORDER_AMOUNT = int(os.getenv('MIN_ORDER_AMOUNT', '40000'))
+
+# Yandex Maps
+YANDEX_MAPS_API_KEY = os.getenv('YANDEX_MAPS_API_KEY', '').strip()

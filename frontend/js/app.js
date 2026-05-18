@@ -14,6 +14,8 @@ document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.t
 
 const API_BASE = window.APP_CONFIG?.API_BASE || window.location.origin;
 let MIN_ORDER_AMOUNT = window.APP_CONFIG?.MIN_ORDER_AMOUNT || 40000;
+let YANDEX_MAPS_API_KEY = '';
+let yandexLoadPromise = null;
 
 async function loadPublicConfig() {
     try {
@@ -23,10 +25,33 @@ async function loadPublicConfig() {
             if (cfg && Number.isFinite(cfg.min_order_amount)) {
                 MIN_ORDER_AMOUNT = cfg.min_order_amount;
             }
+            if (cfg && cfg.yandex_maps_api_key) {
+                YANDEX_MAPS_API_KEY = cfg.yandex_maps_api_key;
+            }
         }
     } catch (e) {
         console.warn('Config yuklashda xato:', e);
     }
+}
+
+function loadYandexMaps() {
+    if (window.ymaps) return Promise.resolve();
+    if (yandexLoadPromise) return yandexLoadPromise;
+    if (!YANDEX_MAPS_API_KEY) {
+        return Promise.reject(new Error('Yandex Maps API key sozlanmagan'));
+    }
+    yandexLoadPromise = new Promise((resolve, reject) => {
+        const ymLang = LANG === 'ru' ? 'ru_RU' : 'uz_UZ';
+        const script = document.createElement('script');
+        script.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(YANDEX_MAPS_API_KEY)}&lang=${ymLang}`;
+        script.onload = () => resolve();
+        script.onerror = () => {
+            yandexLoadPromise = null;
+            reject(new Error('Yandex Maps yuklanmadi'));
+        };
+        document.head.appendChild(script);
+    });
+    return yandexLoadPromise;
 }
 
 // Language
@@ -491,7 +516,7 @@ function renderCategoriesScroll() {
             ? `<img class="category-chip-image" src="${encodeURI(cat.image)}" alt="${safeName}" loading="lazy">`
             : `<div class="category-chip-image no-image">🍽️</div>`;
         html += `
-        <div class="category-chip ${active}" onclick="selectCategory(${cat.id}, '${escapeAttr(cat.name)}')">
+        <div class="category-chip ${active}" onclick="selectCategory(${cat.id})">
             ${img}
             <div class="category-chip-name">${safeName}</div>
         </div>`;
@@ -638,7 +663,7 @@ function renderOrderSummary() {
 // Navigation
 // ============================================
 
-function selectCategory(id, name) {
+function selectCategory(id) {
     selectedCategory = id;
     renderCategoriesScroll();
     const el = document.getElementById(`cat-${id}`);
@@ -1659,7 +1684,10 @@ async function sendMessage() {
         const p = new URLSearchParams(window.location.search);
         const cid = p.get('chat_user_id');
         if (cid) {
-            chatAdminTargetTgId = parseInt(cid, 10);
+            const parsed = parseInt(cid, 10);
+            if (Number.isFinite(parsed) && parsed > 0) {
+                chatAdminTargetTgId = parsed;
+            }
         }
     } catch {}
 })();
@@ -1671,9 +1699,12 @@ function enterAdminChatIfRequested() {
 }
 
 function escapeHtml(s) {
-    const div = document.createElement('div');
-    div.textContent = s;
-    return div.innerHTML;
+    return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1723,12 +1754,17 @@ function hideCheckout() {
 // Map (Yandex Maps)
 // ============================================
 
-function showMap() {
+async function showMap() {
     document.getElementById('map-modal').style.display = 'flex';
-    if (window.ymaps) {
+    try {
+        await loadYandexMaps();
         ymaps.ready(() => setTimeout(initMap, 50));
-    } else {
-        setTimeout(() => showMap(), 200);
+    } catch (e) {
+        console.error('Yandex Maps yuklanmadi:', e);
+        showToast(LANG === 'ru'
+            ? 'Карта недоступна, попробуйте позже'
+            : 'Xarita yuklanmadi, keyinroq urinib ko\'ring');
+        document.getElementById('map-modal').style.display = 'none';
     }
 }
 
@@ -1960,7 +1996,8 @@ async function confirmLocation() {
 
 async function submitOrder() {
     if (deliveryMethod === 'delivery' && !selectedAddress) {
-        alert(txt('select_address'));
+        showToast(txt('select_address'));
+        tg.HapticFeedback?.notificationOccurred('error');
         return;
     }
 
@@ -2015,7 +2052,7 @@ async function doSubmitOrder() {
         // Banner'ni yangilash
         refreshActiveOrdersBanner();
     } catch (e) {
-        alert(e.message || txt('error_occurred'));
+        showToast(e.message || txt('error_occurred'));
         tg.HapticFeedback?.notificationOccurred('error');
     } finally {
         submitBtn.disabled = false;
@@ -2049,7 +2086,10 @@ function formatPrice(price) {
 }
 
 function escapeAttr(s) {
-    return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function closeApp() {
@@ -2127,6 +2167,14 @@ async function init() {
         if (res?.user?.telegram_id) window.__tg_id = res.user.telegram_id;
         syncPhoneFromBackend(res?.user);
         window.__is_admin = !!res?.is_admin;
+        // Agar URL'da lang yo'q va backend'dagi til boshqacha bo'lsa — reload qilish
+        const backendLang = res?.user?.language;
+        if (backendLang && backendLang !== LANG && !urlParams.has('lang')) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('lang', backendLang);
+            window.location.search = params.toString();
+            return;
+        }
     } catch (e) {
         console.error('Auth xato:', e);
     }

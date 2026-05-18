@@ -134,6 +134,7 @@ class PublicConfigView(APIView):
             'min_order_amount': cfg.min_order_amount,
             'delivery_fee': cfg.delivery_fee,
             'support_username': cfg.support_username,
+            'yandex_maps_api_key': settings.YANDEX_MAPS_API_KEY,
         })
 
 
