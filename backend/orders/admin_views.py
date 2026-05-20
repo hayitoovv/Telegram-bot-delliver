@@ -53,9 +53,19 @@ class AdminOrderListView(_BaseAdminView):
         except ValueError:
             per_page = 30
         start = (page - 1) * per_page
-        qs = qs[start:start + per_page]
+        qs = list(qs[start:start + per_page])
+        data = OrderSerializer(qs, many=True, context={'request': request}).data
+        # Yangi buyurtmalar (live) view'i mijoz info'sini ham talab qiladi
+        for i, o in enumerate(qs):
+            data[i]['user'] = {
+                'telegram_id': o.user.telegram_id,
+                'first_name': o.user.first_name,
+                'last_name': o.user.last_name,
+                'username': o.user.username,
+                'phone': o.user.phone,
+            }
         return Response({
-            'results': OrderSerializer(qs, many=True, context={'request': request}).data,
+            'results': data,
             'total': total,
             'page': page,
             'per_page': per_page,

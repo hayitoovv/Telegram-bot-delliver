@@ -1119,3 +1119,135 @@ table.admin-table {
     from { opacity: 0; transform: translate(-50%, 10px); }
     to { opacity: 1; transform: translate(-50%, 0); }
 }
+
+/* ==========================================================
+   Live (Yangi buyurtmalar) board
+   ========================================================== */
+.live-board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(260px, 1fr));
+    gap: 14px;
+    padding: 14px;
+}
+@media (max-width: 1200px) {
+    .live-board { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+    .live-board { grid-template-columns: 1fr; }
+}
+
+.live-col {
+    background: #F8FAFC;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 180px;
+    border: 1px solid #E5E7EB;
+}
+
+.live-col-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 2px solid var(--col-color, #94A3B8);
+    background: #fff;
+    border-radius: 12px 12px 0 0;
+}
+.live-col-title { font-weight: 700; font-size: 14px; color: var(--text); }
+.live-col-count {
+    background: var(--col-color, #94A3B8);
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 24px;
+    text-align: center;
+}
+
+.live-col-body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: calc(100vh - 220px);
+    overflow-y: auto;
+}
+
+.live-empty {
+    text-align: center;
+    color: #94A3B8;
+    font-size: 13px;
+    padding: 28px 0;
+}
+
+.live-card {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 10px;
+    padding: 11px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    transition: transform 0.12s, box-shadow 0.12s;
+}
+.live-card:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+
+.live-card-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.live-card-id { font-weight: 700; color: var(--text); }
+.live-card-time { color: #94A3B8; }
+
+.live-card-customer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+}
+.live-card-phone {
+    color: var(--brand-green-dark, #2E7D32);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+}
+.live-card-phone:hover { text-decoration: underline; }
+
+.live-card-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.35;
+}
+.live-card-items {
+    font-size: 12px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.live-card-price {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--brand-green-dark, #2E7D32);
+}
+
+.live-card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+.live-btn-next {
+    flex: 1;
+    padding: 7px 10px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+}
+.live-btn-cancel, .live-card-actions .btn-row-action {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+}

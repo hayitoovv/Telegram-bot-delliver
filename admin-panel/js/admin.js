@@ -163,6 +163,7 @@ function toggleSidebar() {
 
 const VIEW_TITLES = {
     dashboard: 'Dashboard',
+    live: 'Yangi buyurtmalar',
     orders: 'Buyurtmalar',
     products: 'Mahsulotlar',
     categories: 'Kategoriyalar',
@@ -190,8 +191,12 @@ async function loadView(view) {
         </div>
         <div class="skeleton" style="height:320px;"></div>
     `;
+    // Live view'dan boshqa view'ga o'tilsa, polling to'xtaydi
+    if (view !== 'live') stopLivePolling();
+
     try {
         if (view === 'dashboard') await renderDashboard(content);
+        else if (view === 'live') await renderLive(content);
         else if (view === 'orders') await renderOrders(content);
         else if (view === 'products') await renderProducts(content);
         else if (view === 'categories') await renderCategories(content);
@@ -206,6 +211,154 @@ async function loadView(view) {
 document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => loadView(btn.dataset.view));
 });
+
+// ==========================================================
+// Live (Yangi buyurtmalar — kanban-ko'rinish)
+// ==========================================================
+let livePollTimer = null;
+let liveLastData = null;
+
+const LIVE_COLUMNS = [
+    { key: 'pending',    title: '🆕 Yangi',           color: '#F59E0B', next: 'accepted',   nextLabel: '✓ Qabul qilish' },
+    { key: 'accepted',   title: '✅ Qabul qilingan',   color: '#3B82F6', next: 'preparing',  nextLabel: '👨‍🍳 Tayyorlashga'  },
+    { key: 'preparing',  title: '👨‍🍳 Tayyorlanmoqda',  color: '#8B5CF6', next: 'delivering', nextLabel: '🚚 Yetkazishga'   },
+    { key: 'delivering', title: '🚚 Yetkazilmoqda',   color: '#10B981', next: 'delivered',  nextLabel: '✓ Yetkazildi'    },
+];
+
+function stopLivePolling() {
+    if (livePollTimer) { clearInterval(livePollTimer); livePollTimer = null; }
+}
+
+function startLivePolling() {
+    stopLivePolling();
+    livePollTimer = setInterval(() => refreshLive(false), 15000);
+}
+
+async function renderLive(content) {
+    content.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Yangi buyurtmalar</h2>
+                    <div class="card-subtitle" id="live-subtitle">Yuklanmoqda...</div>
+                </div>
+                <div class="toolbar">
+                    <button class="btn-secondary" onclick="refreshLive(true)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:middle"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        Yangilash
+                    </button>
+                </div>
+            </div>
+            <div class="live-board" id="live-board">
+                <div class="center-state"><div class="spinner"></div></div>
+            </div>
+        </div>
+    `;
+    await refreshLive(true);
+    startLivePolling();
+}
+
+async function refreshLive(showSpinner) {
+    try {
+        // Faqat aktiv statuslar — har bir status uchun alohida so'rov
+        const promises = LIVE_COLUMNS.map(col =>
+            api('/api/admin/orders/', { query: { status: col.key, per_page: 50 } })
+                .then(d => ({ key: col.key, results: d.results || [], total: d.total || 0 }))
+        );
+        const data = await Promise.all(promises);
+        liveLastData = data;
+        renderLiveBoard(data);
+        const totalActive = data.reduce((s, c) => s + c.total, 0);
+        const subEl = document.getElementById('live-subtitle');
+        if (subEl) subEl.textContent = `${totalActive} ta faol buyurtma · har 15 sekundda yangilanadi`;
+        // Sidebar badge'ni ham yangilash — yangi (pending) soni
+        const pendingCount = data.find(c => c.key === 'pending')?.total || 0;
+        const badge = document.getElementById('nav-live-badge');
+        if (badge) {
+            if (pendingCount > 0) {
+                badge.textContent = pendingCount;
+                badge.style.display = 'inline-flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    } catch (e) {
+        if (showSpinner) {
+            const board = document.getElementById('live-board');
+            if (board) board.innerHTML = `<div class="center-state"><div class="state-text">Xato: ${escapeHtml(e.message)}</div></div>`;
+        }
+    }
+}
+
+function renderLiveBoard(data) {
+    const board = document.getElementById('live-board');
+    if (!board) return;
+    const byKey = Object.fromEntries(data.map(c => [c.key, c]));
+    const cols = LIVE_COLUMNS.map(col => {
+        const list = byKey[col.key]?.results || [];
+        const cards = list.length
+            ? list.map(o => renderLiveCard(o, col)).join('')
+            : '<div class="live-empty">Bo\'sh</div>';
+        return `
+            <div class="live-col" data-status="${col.key}">
+                <div class="live-col-head" style="--col-color:${col.color}">
+                    <span class="live-col-title">${col.title}</span>
+                    <span class="live-col-count">${list.length}</span>
+                </div>
+                <div class="live-col-body">${cards}</div>
+            </div>
+        `;
+    }).join('');
+    board.innerHTML = cols;
+}
+
+function renderLiveCard(o, col) {
+    const items = (o.items || []).map(it => `${escapeHtml(it.product_name)}×${it.quantity}`).join(', ');
+    const time = new Date(o.created_at);
+    const timeStr = time.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+    const delivery = o.delivery_method === 'pickup' ? '🏪' : '🚚';
+    const addr = escapeHtml((o.address || '').slice(0, 60)) + (o.address && o.address.length > 60 ? '…' : '');
+    const phone = escapeHtml(o.user?.phone || '');
+    const phoneLine = phone ? `<a href="tel:${phone}" class="live-card-phone">📞 ${phone}</a>` : '';
+    const userName = escapeHtml(o.user?.first_name || '') + (o.user?.last_name ? ' ' + escapeHtml(o.user.last_name) : '');
+    return `
+        <div class="live-card" data-id="${o.id}">
+            <div class="live-card-top">
+                <span class="live-card-id">#${o.id}</span>
+                <span class="live-card-time">${timeStr}</span>
+            </div>
+            <div class="live-card-customer">
+                <b>${userName || '—'}</b>
+                ${phoneLine}
+            </div>
+            <div class="live-card-meta">${delivery} ${escapeHtml(addr) || '-'}</div>
+            <div class="live-card-items" title="${escapeHtml(items)}">🍽 ${items || '—'}</div>
+            <div class="live-card-price">${fmtPrice(o.total_price)} UZS</div>
+            <div class="live-card-actions">
+                <button class="btn-primary live-btn-next" onclick="advanceOrder(${o.id}, '${col.next}')">${col.nextLabel}</button>
+                <button class="btn-row-action danger live-btn-cancel" onclick="cancelOrderFromLive(${o.id})">✗</button>
+                <button class="btn-row-action" onclick="openOrderDetail(${o.id})">📋</button>
+            </div>
+        </div>
+    `;
+}
+
+async function advanceOrder(id, newStatus) {
+    try {
+        await api(`/api/admin/orders/${id}/`, { method: 'PATCH', body: { status: newStatus } });
+        toast('Holat o\'zgartirildi');
+        await refreshLive(false);
+    } catch (e) { toast('Xato: ' + e.message); }
+}
+
+async function cancelOrderFromLive(id) {
+    if (!confirm("Buyurtmani bekor qilasizmi?")) return;
+    try {
+        await api(`/api/admin/orders/${id}/`, { method: 'PATCH', body: { status: 'cancelled' } });
+        toast('Bekor qilindi');
+        await refreshLive(false);
+    } catch (e) { toast('Xato: ' + e.message); }
+}
 
 // ==========================================================
 // Dashboard
