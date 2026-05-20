@@ -138,6 +138,32 @@ class PublicConfigView(APIView):
         })
 
 
+class ClientDiagnosticsView(APIView):
+    """Frontend initData bilan muammoga uchraganda diagnostika ma'lumotini loglash."""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        # Faqat anonim ma'lumot — initData KO'RSATILMAYDI, faqat metadatasi
+        d = request.data or {}
+        logger.warning(
+            "[CLIENT-DIAG] ua=%r ref=%r tg_init_len=%s tg_unsafe_keys=%s "
+            "hash_present=%s hash_keys=%s cached=%s mem=%s lang=%s tg_id=%s url=%r",
+            request.META.get('HTTP_USER_AGENT', '')[:200],
+            request.META.get('HTTP_REFERER', '')[:200],
+            d.get('tg_init_len'),
+            d.get('tg_unsafe_keys'),
+            d.get('hash_present'),
+            d.get('hash_keys'),
+            d.get('has_cache'),
+            d.get('has_memory'),
+            d.get('lang'),
+            d.get('tg_id'),
+            (d.get('url') or '')[:200],
+        )
+        return Response({'ok': True})
+
+
 class ChatView(APIView):
     """Mini-app chat: user xabarini DB'ga saqlab, adminga forward qiladi."""
 

@@ -371,9 +371,43 @@ function hasValidInitData() {
     return true;
 }
 
+// initData bo'sh kelgan holat tafsilotini backend log'iga yuborish (debug uchun)
+let __diagSent = false;
+function sendDiagnostics() {
+    if (__diagSent) return;
+    __diagSent = true;
+    try {
+        let hashKeys = [];
+        try {
+            const h = window.location.hash.substring(1);
+            if (h) hashKeys = [...new URLSearchParams(h).keys()];
+        } catch {}
+        let hasCache = false;
+        try { hasCache = !!localStorage.getItem(INIT_DATA_CACHE_KEY); } catch {}
+        const body = {
+            tg_init_len: (tg?.initData || '').length,
+            tg_unsafe_keys: Object.keys(tg?.initDataUnsafe || {}),
+            hash_present: !!window.location.hash,
+            hash_keys: hashKeys,
+            has_cache: hasCache,
+            has_memory: !!__initDataMemory,
+            lang: LANG,
+            tg_id: tg?.initDataUnsafe?.user?.id || null,
+            url: window.location.href.substring(0, 200),
+        };
+        fetch(`${API_BASE}/api/diag/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            keepalive: true,
+        }).catch(() => {});
+    } catch {}
+}
+
 // Sessiya muddati tugagan/initData yo'qolgan holatda foydalanuvchiga aniq
 // xabar berib, botdan qayta ochishni so'raymiz.
 function showReopenPrompt() {
+    sendDiagnostics();
     const isRu = LANG === 'ru';
     const text = isRu
         ? 'Сессия истекла. Откройте бота и нажмите "Меню" заново.'
@@ -2234,11 +2268,14 @@ async function init() {
         }
     } catch (e) {
         console.error('Auth xato:', e);
+        // Diagnostika yuboramiz (sabab har qanday bo'lsa)
+        sendDiagnostics();
         // Boshlanish'da auth tushib qolsa — ehtimol initData yo'q yoki bot
         // token o'zgargan. Foydalanuvchiga aniq xabar beramiz.
         if (e.message && (e.message.includes('init_data') ||
                           e.message.includes('Menyu') ||
-                          e.message.includes('Меню'))) {
+                          e.message.includes('Меню') ||
+                          e.message.includes('initData talab'))) {
             showReopenPrompt();
         }
     }

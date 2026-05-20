@@ -5,6 +5,7 @@ from . import admin_views
 urlpatterns = [
     path('auth/', views.AuthView.as_view(), name='auth'),
     path('config/', views.PublicConfigView.as_view(), name='public-config'),
+    path('diag/', views.ClientDiagnosticsView.as_view(), name='client-diag'),
     path('chat/', views.ChatView.as_view(), name='chat'),
     path('chat/history/', views.ChatHistoryView.as_view(), name='chat-history'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
