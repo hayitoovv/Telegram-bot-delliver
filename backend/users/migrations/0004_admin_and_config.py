@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0003_telegramuser_language'),
+        ('users', '0003_merge_0002_chatmessage_0002_telegramuser_language'),
     ]
 
     operations = [
