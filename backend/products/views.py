@@ -6,6 +6,7 @@ from .serializers import CategorySerializer, ProductSerializer
 class CategoryListView(generics.ListAPIView):
     serializer_class = CategorySerializer
     queryset = Category.objects.filter(is_active=True)
+    pagination_class = None  # Kategoriya soni kam — sahifalashga hojat yo'q
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -14,7 +15,11 @@ class CategoryListView(generics.ListAPIView):
 
 
 class ProductListView(generics.ListAPIView):
+    """Mini-app menyuga barcha faol mahsulotlarni qaytaradi — sahifalashsiz.
+    Default PAGE_SIZE=50 frontend'ni 1-sahifaga cheklaydi, natijada
+    50-mahsulotdan keyingi kategoriyalar bo'sh ko'rinardi."""
     serializer_class = ProductSerializer
+    pagination_class = None
 
     def get_queryset(self):
         queryset = Product.objects.filter(is_active=True)
