@@ -9,21 +9,18 @@ from rest_framework import status
 
 from .models import TelegramUser, ChatMessage, SiteConfig
 from .serializers import TelegramUserSerializer
-from food_delivery.telegram_auth import verify_telegram_data_detailed
+from food_delivery.telegram_auth import verify_telegram_data_detailed, verify_user_request
 from food_delivery.admin_auth import _valid_admin_ids
 
 logger = logging.getLogger(__name__)
 
 
 def _get_user_from_request(request):
-    init_data = request.data.get('initData', '')
-    if not init_data:
-        return None, None, Response({'error': 'initData talab qilinadi'}, status=400)
-
-    user_data, reason = verify_telegram_data_detailed(init_data)
+    user_data, reason = verify_user_request(request)
     if user_data is None:
+        # initData ham, user_token ham yo'q yoki yaroqsiz
         return None, None, Response(
-            {'error': 'initData yaroqsiz', 'reason': reason},
+            {'error': 'initData yaroqsiz', 'reason': reason or 'empty_init_data'},
             status=403,
         )
 
@@ -136,6 +133,28 @@ class PublicConfigView(APIView):
             'support_username': cfg.support_username,
             'yandex_maps_api_key': settings.YANDEX_MAPS_API_KEY,
         })
+
+
+class UserIssueTokenView(APIView):
+    """Bot mini-app URL'iga qo'shish uchun signed user_token chiqaradi.
+    Bot o'zini TELEGRAM_BOT_TOKEN orqali tasdiqlaydi (shared secret).
+    Bu — Telegram initData yo'q clientlar uchun fallback auth mexanizmi."""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        provided = (request.data.get('bot_secret') or '').strip()
+        expected = (settings.TELEGRAM_BOT_TOKEN or '').strip()
+        if not provided or provided != expected:
+            return Response({'error': 'Forbidden'}, status=403)
+        try:
+            tg_id = int(request.data.get('tg_id') or 0)
+        except (TypeError, ValueError):
+            return Response({'error': "Noto'g'ri tg_id"}, status=400)
+        if not tg_id:
+            return Response({'error': 'tg_id kerak'}, status=400)
+        from food_delivery.admin_auth import create_user_token
+        return Response({'token': create_user_token(tg_id), 'expires_hours': 24})
 
 
 class ClientDiagnosticsView(APIView):

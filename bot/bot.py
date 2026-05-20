@@ -150,11 +150,31 @@ async def _fetch_admin_token(user_id: int) -> str:
     return ''
 
 
+async def _fetch_user_token(user_id: int) -> str:
+    """Mini-app URL'iga qo'shish uchun signed user token (initData fallback)."""
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(
+                f"{BACKEND_URL}/api/user/issue-token/",
+                json={'tg_id': user_id, 'bot_secret': BOT_TOKEN},
+            )
+            if resp.status_code == 200:
+                return resp.json().get('token', '')
+    except httpx.HTTPError as e:
+        logger.error("User token olishda xato: %s", e)
+    return ''
+
+
 async def get_keyboard(user_id: int, lang: str):
     """Til ga qarab keyboard yaratish."""
     base = MINI_APP_URL.rstrip('/') + '/'
+    # Telegram initData ba'zi clientlarda kelmasligi mumkin — signed user_token bilan fallback
+    user_token = await _fetch_user_token(user_id)
+    params = f"lang={lang}"
+    if user_token:
+        params += f"&user_token={user_token}"
     sep = '&' if '?' in base else '?'
-    mini_url = f"{base}{sep}lang={lang}"
+    mini_url = f"{base}{sep}{params}"
     keyboard = [
         [KeyboardButton(t(lang, 'menu'), web_app=WebAppInfo(url=mini_url))],
         [KeyboardButton(t(lang, 'change_lang')), KeyboardButton(t(lang, 'chat'))],

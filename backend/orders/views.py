@@ -7,7 +7,7 @@ from .models import Order, OrderItem
 from .serializers import OrderCreateSerializer, OrderSerializer
 from products.models import Product
 from users.models import TelegramUser
-from food_delivery.telegram_auth import verify_telegram_data_detailed
+from food_delivery.telegram_auth import verify_telegram_data_detailed, verify_user_request
 from food_delivery.notifications import notify_admins_new_order, notify_user_new_order
 
 
@@ -23,8 +23,7 @@ class OrderCreateView(APIView):
 
     def post(self, request):
         # Foydalanuvchini tekshirish
-        init_data = request.data.get('initData', '')
-        user_data, reason = verify_telegram_data_detailed(init_data)
+        user_data, reason = verify_user_request(request)
         if user_data is None:
             return _auth_error_response(reason)
 
@@ -105,8 +104,7 @@ class OrderListView(APIView):
     """Foydalanuvchi buyurtmalari."""
 
     def post(self, request):
-        init_data = request.data.get('initData', '')
-        user_data, reason = verify_telegram_data_detailed(init_data)
+        user_data, reason = verify_user_request(request)
         if user_data is None:
             return _auth_error_response(reason)
 
@@ -125,8 +123,7 @@ class OrderCancelView(APIView):
     """Foydalanuvchi o'z buyurtmasini bekor qiladi."""
 
     def post(self, request):
-        init_data = request.data.get('initData', '')
-        user_data, reason = verify_telegram_data_detailed(init_data)
+        user_data, reason = verify_user_request(request)
         if user_data is None:
             return _auth_error_response(reason)
 

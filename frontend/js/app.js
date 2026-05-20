@@ -58,6 +58,28 @@ function loadYandexMaps() {
 const urlParams = new URLSearchParams(window.location.search);
 const LANG = urlParams.get('lang') || 'uz';
 
+// Bot tomonidan imzolangan user_token — Telegram initData ba'zi clientlarda
+// bo'sh kelganda (Android LOW mode va h.k.) fallback sifatida ishlatiladi.
+const USER_TOKEN_KEY = 'avenue_user_token';
+let USER_TOKEN = '';
+try {
+    const fromUrl = urlParams.get('user_token');
+    if (fromUrl) {
+        USER_TOKEN = fromUrl;
+        localStorage.setItem(USER_TOKEN_KEY, fromUrl);
+        // URL'dan tozalab qo'yamiz — referer'da yoki bookmark'da qolmasligi uchun
+        try {
+            urlParams.delete('user_token');
+            const clean = window.location.pathname +
+                (urlParams.toString() ? '?' + urlParams.toString() : '') +
+                window.location.hash;
+            history.replaceState(null, '', clean);
+        } catch {}
+    } else {
+        USER_TOKEN = localStorage.getItem(USER_TOKEN_KEY) || '';
+    }
+} catch {}
+
 const UI_TEXTS = {
     uz: {
         search_placeholder: "Mahsulotlarni qidirish",
@@ -364,11 +386,12 @@ function getInitData() {
 }
 
 function hasValidInitData() {
+    // Avval initData
     const v = getInitData();
-    if (!v) return false;
-    // JSON DEBUG-only fallback — production'da rad qilinadi
-    if (v.startsWith('{')) return false;
-    return true;
+    if (v && !v.startsWith('{')) return true;
+    // Fallback: bot tomonidan imzolangan user_token
+    if (USER_TOKEN) return true;
+    return false;
 }
 
 // initData bo'sh kelgan holat tafsilotini backend log'iga yuborish (debug uchun)
@@ -446,10 +469,12 @@ function translateAuthReason(reason) {
 }
 
 async function apiPost(endpoint, data) {
+    const payload = { ...data, initData: getInitData() };
+    if (USER_TOKEN) payload.user_token = USER_TOKEN;
     const res = await fetch(`${API_BASE}/api/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...COMMON_HEADERS },
-        body: JSON.stringify({ ...data, initData: getInitData() }),
+        body: JSON.stringify(payload),
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));

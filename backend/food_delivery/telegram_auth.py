@@ -16,6 +16,48 @@ def verify_telegram_data(init_data: str) -> dict | None:
     return user
 
 
+def verify_user_request(request) -> tuple[dict | None, str | None]:
+    """
+    User'ni tekshiradi: avval initData, keyin user_token fallback.
+    Telegram client'lardan ba'zan tg.initData bo'sh keladi (Android LOW mode va h.k.) —
+    bot URL'iga signed user_token qo'shadi, biz uni qabul qilamiz.
+    """
+    init_data = request.data.get('initData', '') if hasattr(request, 'data') else ''
+
+    # Avval initData (asosiy yo'l)
+    user_data, reason = verify_telegram_data_detailed(init_data)
+    if user_data is not None:
+        return user_data, None
+
+    # Fallback: bot tomonidan imzolangan user_token
+    from food_delivery.admin_auth import verify_user_token
+    token = ''
+    try:
+        token = request.data.get('user_token') or ''
+    except Exception:
+        pass
+    if not token:
+        token = request.query_params.get('user_token') or ''
+    if token:
+        tg_id = verify_user_token(token)
+        if tg_id:
+            # Foydalanuvchi DB'da bor bo'lsa, undagi ma'lumotlardan foydalanamiz
+            from users.models import TelegramUser
+            try:
+                u = TelegramUser.objects.get(telegram_id=tg_id)
+                return {
+                    'id': u.telegram_id,
+                    'first_name': u.first_name,
+                    'last_name': u.last_name,
+                    'username': u.username,
+                }, None
+            except TelegramUser.DoesNotExist:
+                # Token to'g'ri lekin foydalanuvchi DB'da yo'q
+                return {'id': tg_id, 'first_name': '', 'last_name': '', 'username': ''}, None
+
+    return None, reason or 'empty_init_data'
+
+
 def verify_telegram_data_detailed(init_data: str) -> tuple[dict | None, str | None]:
     """
     Telegram WebApp initData ni tekshiradi.

@@ -13,9 +13,16 @@ logger = logging.getLogger(__name__)
 ADMIN_TOKEN_SALT = 'avenue-admin-panel'
 ADMIN_TOKEN_MAX_AGE = 24 * 3600  # 24 soat
 
+USER_TOKEN_SALT = 'avenue-mini-app-user'
+USER_TOKEN_MAX_AGE = 24 * 3600  # 24 soat — Telegram'ning initData TTL bilan bir xil
+
 
 def _signer():
     return TimestampSigner(salt=ADMIN_TOKEN_SALT)
+
+
+def _user_signer():
+    return TimestampSigner(salt=USER_TOKEN_SALT)
 
 
 def create_admin_token(tg_id: int) -> str:
@@ -27,6 +34,21 @@ def verify_admin_token(token: str) -> int | None:
         return None
     try:
         raw = _signer().unsign(token, max_age=ADMIN_TOKEN_MAX_AGE)
+        return int(raw)
+    except (BadSignature, SignatureExpired, ValueError):
+        return None
+
+
+def create_user_token(tg_id: int) -> str:
+    """Mini-app foydalanuvchisi uchun signed token (initData yo'q clientlar uchun fallback)."""
+    return _user_signer().sign(str(int(tg_id)))
+
+
+def verify_user_token(token: str) -> int | None:
+    if not token:
+        return None
+    try:
+        raw = _user_signer().unsign(token, max_age=USER_TOKEN_MAX_AGE)
         return int(raw)
     except (BadSignature, SignatureExpired, ValueError):
         return None
