@@ -3612,3 +3612,134 @@ body::-webkit-scrollbar,
 .lang-quick-item:active {
     background: #F3F4F6;
 }
+
+/* ============================================================
+   RESPONSIVE — Tablet / Desktop (Telegram Desktop, Web Telegram)
+   Mobile-first: hech qanday breakpoint ostida o'zgartirilmaydi.
+   Tablet va kattaroq ekranlarda mini-app'ni telefon ko'rinishidagi
+   markaziy ustun sifatida ko'rsatamiz.
+   ============================================================ */
+
+/* Tablet va kattaroq (>= 640px) */
+@media (min-width: 640px) {
+    html {
+        background: linear-gradient(135deg, #E8F4D8 0%, #D8E9BE 50%, #B8DFA5 100%);
+        background-attachment: fixed;
+        min-height: 100%;
+    }
+
+    body {
+        max-width: 540px;
+        margin: 0 auto;
+        background: var(--tg-theme-bg-color);
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.12);
+        position: relative;
+        min-height: 100vh;
+    }
+
+    /* Top bar — body ichida joylashgan, lekin border-radius beramiz */
+    .top-bar {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+
+    /* Fixed bottom bar — body kengligida qoladi */
+    .cart-bottom-bar,
+    .active-orders-banner {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: calc(540px - 24px);
+        max-width: calc(540px - 24px);
+    }
+
+    /* Overlay backdrop'lar viewport bo'ylab tarqaladi (qora dim),
+       lekin ichidagi modal content 540px ichida markazda */
+    .modal,
+    .modal-full,
+    .map-modal,
+    .cart-page,
+    .checkout-page,
+    .side-page,
+    .chat-full,
+    .addresses-sheet-modal,
+    .addr-prompt,
+    .dialog-box {
+        max-width: 540px;
+        width: 100%;
+    }
+
+    /* Drawer right-side panel — viewport edge'dan emas, body chetidan ochiladi */
+    .drawer {
+        max-width: 360px;
+    }
+    .drawer-overlay {
+        max-width: 540px;
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+    }
+
+    /* Lang quick menu pastdan ochiladi — column ichida */
+    .lang-quick-overlay {
+        max-width: 540px;
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+    }
+
+    /* Mahsulot card'lari — kengroq ekranda 1 ustun saqlanadi (Telegram WebView UX uchun),
+       lekin biroz katta bo'ladi */
+    .product-hcard {
+        min-width: 280px;
+    }
+}
+
+/* Desktop (>= 1024px) — outer decorative artwork bilan */
+@media (min-width: 1024px) {
+    html {
+        background:
+            radial-gradient(circle at 20% 20%, rgba(139, 195, 74, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(46, 125, 50, 0.15) 0%, transparent 50%),
+            linear-gradient(135deg, #E8F4D8 0%, #D8E9BE 50%, #B8DFA5 100%);
+    }
+    body {
+        box-shadow: 0 0 80px rgba(0, 0, 0, 0.18);
+    }
+}
+
+/* Kichik mobil (<= 360px iPhone SE va h.k.) — minor padding/text fix */
+@media (max-width: 360px) {
+    .top-bar { padding: 10px 8px; }
+    .brand-logo { font-size: 20px; }
+    .search-row { gap: 6px; }
+    .search-btn { padding: 0 12px; font-size: 13px; }
+    .product-hcard { min-width: 140px; }
+    .product-hcard .product-name { font-size: 13px; }
+    .cart-bottom-bar { padding: 12px 16px; }
+    .cart-bar-total { font-size: 15px; }
+    .od-bottom .btn-outline-purple,
+    .od-bottom .btn-purple { font-size: 13px; padding: 11px 14px; }
+    .delivery-option { padding: 12px; }
+    .delivery-title { font-size: 14px; }
+    .delivery-desc { font-size: 12px; }
+    .addr-prompt { padding: 20px 16px; }
+}
+
+/* Landscape orientation kichik telefonlarda — header'ni kompaktroq */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+    .top-bar { padding: 8px 12px; }
+    .brand-row { margin-bottom: 8px; padding: 0; }
+    .brand-logo { font-size: 18px; }
+    .brand-tagline { display: none; }
+    .search-row { margin-bottom: 8px; }
+    .modal-full,
+    .side-page { height: 100vh; }
+    .side-page-body { padding: 12px; }
+}
+
+/* Touch-screen optimization — accessibility */
+@media (hover: none) {
+    /* Mobile/tap qurilmalarda hover effektlar ba'zan tap'dan keyin chiqib qoladi */
+    .product-hcard:hover { transform: none; }
+}
