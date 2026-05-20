@@ -1,60 +1,124 @@
 """Admin notification moduli."""
 import html
 import logging
+import threading
 import requests
 from django.conf import settings
 
-from food_delivery.admin_auth import _valid_admin_ids
+from food_delivery.admin_auth import _valid_admin_ids, create_admin_token
 
 logger = logging.getLogger(__name__)
 
 
-def notify_admins_new_order(order):
-    """Yangi buyurtma haqida adminlarga Telegram orqali xabar yuborish."""
-    items_text = '\n'.join(
-        f"  - {html.escape(item.product_name)} x{item.quantity} = {item.price * item.quantity:,} UZS"
-        for item in order.items.all()
-    )
+def _delivery_label(method: str) -> str:
+    return 'Yetkazib berish' if method == 'delivery' else 'Olib ketish'
 
-    first_name = html.escape(order.user.first_name or '')
-    username = html.escape(order.user.username or '')
-    address = html.escape(order.address or '')
 
-    message = (
-        f"🆕 Yangi buyurtma #{order.id}\n\n"
-        f"👤 {first_name}"
-        f"{' @' + username if username else ''}\n"
-        f"📍 {address}\n"
-        f"💰 {order.total_price:,} UZS\n\n"
-        f"📦 Mahsulotlar:\n{items_text}"
-    )
+def _format_admin_order_message(order) -> str:
+    """Admin uchun yangi buyurtma xabari — to'liq ma'lumot bilan."""
+    u = order.user
+    full_name = f"{u.first_name or ''} {u.last_name or ''}".strip() or '-'
+    full_name = html.escape(full_name)
+    username = ('@' + html.escape(u.username)) if u.username else ''
+    phone = html.escape(u.phone or "ko'rsatilmagan")
+    address = html.escape(order.address or '-')
+    delivery = _delivery_label(order.delivery_method)
+    delivery_emoji = '🚚' if order.delivery_method == 'delivery' else '🏪'
 
+    created_at_str = order.created_at.strftime('%d.%m.%Y %H:%M') if order.created_at else '-'
+
+    items_lines = []
+    total_items_count = 0
+    for item in order.items.all():
+        subtotal = item.price * item.quantity
+        total_items_count += item.quantity
+        items_lines.append(
+            f"  • <b>{html.escape(item.product_name)}</b>\n"
+            f"     {item.quantity} × {item.price:,} = {subtotal:,} UZS"
+        )
+    items_text = '\n'.join(items_lines) if items_lines else '  (mahsulotlar yo\'q)'
+
+    coords_line = ''
+    if order.latitude is not None and order.longitude is not None:
+        coords_line = (
+            f"📌 <b>Koordinatalar:</b> "
+            f"<a href=\"https://yandex.uz/maps/?ll={order.longitude},{order.latitude}&z=17\">"
+            f"{order.latitude:.5f}, {order.longitude:.5f}</a>\n"
+        )
+
+    parts = [
+        f"🆕 <b>YANGI BUYURTMA #{order.id}</b>",
+        f"<i>🕐 {created_at_str}</i>",
+        '',
+        f"<b>👤 Mijoz:</b> {full_name} {username}".strip(),
+        f"📞 <b>Telefon:</b> <code>{phone}</code>",
+        f"🆔 <code>{u.telegram_id}</code>",
+        '',
+        f"{delivery_emoji} <b>Servis:</b> {delivery}",
+        f"📍 <b>Manzil:</b> {address}",
+        coords_line.rstrip() if coords_line else '',
+        '',
+        f"📦 <b>Mahsulotlar</b> ({total_items_count} dona):",
+        items_text,
+        '',
+        f"💰 <b>JAMI: {order.total_price:,} UZS</b>",
+    ]
     if order.comment:
-        message += f"\n\n💬 Izoh: {html.escape(order.comment)}"
+        parts.extend(['', f"💬 <b>Izoh:</b> {html.escape(order.comment)}"])
 
+    return '\n'.join(p for p in parts if p is not None)
+
+
+def _send_telegram(bot_token: str, payload: dict) -> None:
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+            json=payload,
+            timeout=10,
+        )
+    except requests.RequestException as e:
+        logger.error(f"Telegram send xato (chat_id={payload.get('chat_id')}): {e}")
+
+
+def notify_admins_new_order(order):
+    """Yangi buyurtma haqida BARCHA adminlarga (env + DB) to'liq xabar yuborish.
+    Fon thread'da bajariladi — buyurtma yaratish so'rovi bloklamaydi."""
     bot_token = settings.TELEGRAM_BOT_TOKEN
     if not bot_token:
         logger.warning("TELEGRAM_BOT_TOKEN sozlanmagan, notification yuborilmadi")
         return
 
-    admin_ids = _valid_admin_ids()
+    admin_ids = list(_valid_admin_ids())
     if not admin_ids:
-        logger.warning("TELEGRAM_ADMIN_CHAT_IDS bo'sh yoki noto'g'ri, notification yuborilmadi")
+        logger.warning("Admin'lar yo'q (env va DB ikkalasida), notification yuborilmadi")
         return
 
-    for chat_id in admin_ids:
-        try:
-            requests.post(
-                f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                json={'chat_id': chat_id, 'text': message, 'parse_mode': 'HTML'},
-                timeout=10,
-            )
-        except requests.RequestException as e:
-            logger.error(f"Admin {chat_id} ga xabar yuborishda xato: {e}")
+    message = _format_admin_order_message(order)
+    mini_app_url = (getattr(settings, 'MINI_APP_URL', '') or '').rstrip('/')
 
+    def _do_send():
+        for chat_id in admin_ids:
+            payload = {
+                'chat_id': chat_id,
+                'text': message,
+                'parse_mode': 'HTML',
+                'disable_web_page_preview': True,
+            }
+            # Admin panel'ni ochish uchun inline tugma (har bir admin uchun alohida token)
+            if mini_app_url:
+                try:
+                    admin_token = create_admin_token(chat_id)
+                    panel_url = f"{mini_app_url}/admin-panel/?token={admin_token}"
+                    payload['reply_markup'] = {
+                        'inline_keyboard': [[
+                            {'text': '🛠 Admin panel', 'web_app': {'url': panel_url}},
+                        ]],
+                    }
+                except Exception as e:
+                    logger.error("Admin token yaratishda xato: %s", e)
+            _send_telegram(bot_token, payload)
 
-def _delivery_label(method: str) -> str:
-    return 'Yetkazib berish' if method == 'delivery' else 'Olib ketish'
+    threading.Thread(target=_do_send, daemon=True).start()
 
 
 def notify_user_new_order(order):
