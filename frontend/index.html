@@ -27,7 +27,7 @@
             } catch (e) {}
         })();
     </script>
-    <link rel="stylesheet" href="/app/css/style.css?v=54">
+    <link rel="stylesheet" href="/app/css/style.css?v=55">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -398,6 +398,18 @@
                         <input type="text" id="checkout-floor" data-i18n="floor" placeholder="Qavat" class="addr-detail-input">
                         <input type="text" id="checkout-apartment" data-i18n="room" placeholder="Xona" class="addr-detail-input">
                     </div>
+
+                    <!-- Restaurant comment -->
+                    <div class="checkout-row" onclick="toggleRestaurantComment()">
+                        <div class="checkout-row-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+                        </div>
+                        <div class="checkout-row-content">
+                            <div class="checkout-row-value" data-i18n="restaurant_comment">Restoran uchun izoh (masalan: sovus qo'shilmasin)</div>
+                        </div>
+                        <svg class="checkout-row-arrow" id="restaurant-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </div>
+                    <textarea id="restaurant-comment-input" data-i18n="restaurant_comment_placeholder" placeholder="Mahsulot tayyorlash bo'yicha xohish..." rows="2" class="courier-comment-input" style="display:none;"></textarea>
 
                     <!-- Courier comment -->
                     <div class="checkout-row" onclick="toggleCourierComment()">
@@ -783,6 +795,6 @@
         </div>
     </div>
 
-    <script src="/app/js/app.js?v=52"></script>
+    <script src="/app/js/app.js?v=53"></script>
 </body>
 </html>

@@ -63,8 +63,12 @@ def _format_admin_order_message(order) -> str:
         '',
         f"💰 <b>JAMI: {order.total_price:,} UZS</b>",
     ]
+    # Restoran (oshpaz) uchun izoh — alohida, ko'rinarli joyda
+    if order.restaurant_comment:
+        parts.extend(['', f"🍴 <b>Restoran uchun:</b> {html.escape(order.restaurant_comment)}"])
+    # Kuryer uchun izoh (yetkazib berish manzili/domofon/kirish kodi)
     if order.comment:
-        parts.extend(['', f"💬 <b>Izoh:</b> {html.escape(order.comment)}"])
+        parts.extend(['', f"🚴 <b>Kuryer uchun:</b> {html.escape(order.comment)}"])
 
     return '\n'.join(p for p in parts if p is not None)
 
@@ -160,8 +164,10 @@ def notify_user_new_order(order):
         "",
         f"<b>📍 Manzil:</b> {address}",
     ]
+    if order.restaurant_comment:
+        lines.append(f"<b>🍴 Restoran uchun:</b> {html.escape(order.restaurant_comment)}")
     if order.comment:
-        lines.append(f"<b>💬 Izoh:</b> {html.escape(order.comment)}")
+        lines.append(f"<b>🚴 Kuryer uchun:</b> {html.escape(order.comment)}")
     lines += [
         "",
         f"<b>💵 Jami summa:</b> {order.total_price:,} UZS",

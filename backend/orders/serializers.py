@@ -13,6 +13,7 @@ class OrderCreateSerializer(serializers.Serializer):
     latitude = serializers.FloatField(required=False, allow_null=True)
     longitude = serializers.FloatField(required=False, allow_null=True)
     comment = serializers.CharField(required=False, allow_blank=True, default='')
+    restaurant_comment = serializers.CharField(required=False, allow_blank=True, default='')
     delivery_method = serializers.ChoiceField(
         choices=[('delivery', 'delivery'), ('pickup', 'pickup')],
         required=False, default='delivery',
@@ -40,4 +41,5 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'total_price', 'status', 'delivery_method', 'address', 'comment', 'items', 'created_at']
+        fields = ['id', 'total_price', 'status', 'delivery_method', 'address',
+                  'comment', 'restaurant_comment', 'items', 'created_at']

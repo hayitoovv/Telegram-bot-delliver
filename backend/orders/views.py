@@ -85,6 +85,7 @@ class OrderCreateView(APIView):
             latitude=data.get('latitude'),
             longitude=data.get('longitude'),
             comment=data.get('comment', ''),
+            restaurant_comment=data.get('restaurant_comment', ''),
         )
 
         for item in order_items:

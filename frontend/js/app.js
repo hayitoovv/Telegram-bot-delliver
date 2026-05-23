@@ -135,6 +135,8 @@ const UI_TEXTS = {
         floor: "Qavat",
         room: "Xona",
         courier_comment: "Kuryer uchun izoh (domofon kodi)",
+        restaurant_comment: "Restoran uchun izoh (masalan: sovus qo'shilmasin)",
+        restaurant_comment_placeholder: "Mahsulot tayyorlash bo'yicha xohish...",
         my_addresses: "Manzillarim",
         new_address: "Yangi yaratish",
     },
@@ -192,6 +194,8 @@ const UI_TEXTS = {
         floor: "Этаж",
         room: "Квартира",
         courier_comment: "Комментарий для курьера (код домофона)",
+        restaurant_comment: "Комментарий ресторану (например: без соуса)",
+        restaurant_comment_placeholder: "Пожелания по приготовлению...",
         my_addresses: "Мои адреса",
         new_address: "Создать новый",
     },
@@ -289,6 +293,15 @@ function createNewAddress() {
 function toggleCourierComment() {
     const input = document.getElementById('comment-input');
     const arrow = document.getElementById('courier-arrow');
+    const visible = input.style.display !== 'none';
+    input.style.display = visible ? 'none' : 'block';
+    arrow.classList.toggle('rotated', !visible);
+    if (!visible) input.focus();
+}
+
+function toggleRestaurantComment() {
+    const input = document.getElementById('restaurant-comment-input');
+    const arrow = document.getElementById('restaurant-arrow');
     const visible = input.style.display !== 'none';
     input.style.display = visible ? 'none' : 'block';
     arrow.classList.toggle('rotated', !visible);
@@ -2124,6 +2137,7 @@ async function doSubmitOrder() {
     }
 
     const comment = document.getElementById('comment-input').value.trim();
+    const restaurantComment = document.getElementById('restaurant-comment-input').value.trim();
     const entrance = document.getElementById('checkout-entrance').value.trim();
     const floor = document.getElementById('checkout-floor').value.trim();
     const apartment = document.getElementById('checkout-apartment').value.trim();
@@ -2149,6 +2163,7 @@ async function doSubmitOrder() {
             items,
             address: deliveryMethod === 'pickup' ? 'Pickup (olib ketish)' : selectedAddress.label,
             comment: fullComment,
+            restaurant_comment: restaurantComment,
             latitude: deliveryMethod === 'pickup' ? null : selectedAddress?.lat,
             longitude: deliveryMethod === 'pickup' ? null : selectedAddress?.lng,
             delivery_method: deliveryMethod,

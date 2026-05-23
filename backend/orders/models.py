@@ -32,7 +32,8 @@ class Order(models.Model):
     address = models.TextField(verbose_name="Manzil")
     latitude = models.FloatField(null=True, blank=True, verbose_name="Kenglik")
     longitude = models.FloatField(null=True, blank=True, verbose_name="Uzunlik")
-    comment = models.TextField(blank=True, default='', verbose_name="Izoh")
+    comment = models.TextField(blank=True, default='', verbose_name="Kuryer uchun izoh")
+    restaurant_comment = models.TextField(blank=True, default='', verbose_name="Restoran uchun izoh")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqt")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Yangilangan vaqt")
 

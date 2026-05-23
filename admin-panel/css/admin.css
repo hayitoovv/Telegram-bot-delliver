@@ -1251,3 +1251,19 @@ table.admin-table {
     padding: 6px 10px !important;
     font-size: 12px !important;
 }
+
+/* Live card — restoran izoh ko'rsatkichi (oshpazlar uchun) */
+.live-card-rest-note {
+    background: #FEF3C7;
+    color: #92400E;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.3;
+    border-left: 3px solid #F59E0B;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}

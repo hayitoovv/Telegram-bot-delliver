@@ -321,6 +321,9 @@ function renderLiveCard(o, col) {
     const phone = escapeHtml(o.user?.phone || '');
     const phoneLine = phone ? `<a href="tel:${phone}" class="live-card-phone">📞 ${phone}</a>` : '';
     const userName = escapeHtml(o.user?.first_name || '') + (o.user?.last_name ? ' ' + escapeHtml(o.user.last_name) : '');
+    const restNote = o.restaurant_comment
+        ? `<div class="live-card-rest-note">🍴 ${escapeHtml(o.restaurant_comment)}</div>`
+        : '';
     return `
         <div class="live-card" data-id="${o.id}">
             <div class="live-card-top">
@@ -333,6 +336,7 @@ function renderLiveCard(o, col) {
             </div>
             <div class="live-card-meta">${delivery} ${escapeHtml(addr) || '-'}</div>
             <div class="live-card-items" title="${escapeHtml(items)}">🍽 ${items || '—'}</div>
+            ${restNote}
             <div class="live-card-price">${fmtPrice(o.total_price)} UZS</div>
             <div class="live-card-actions">
                 <button class="btn-primary live-btn-next" onclick="advanceOrder(${o.id}, '${col.next}')">${col.nextLabel}</button>
@@ -776,7 +780,8 @@ async function openOrderDetail(id) {
                     <div class="order-field-row"><span class="lbl">Telefon</span><span class="val">${escapeHtml(u.phone || '-')}</span></div>
                     <div class="order-field-row"><span class="lbl">Servis</span><span class="val">${o.delivery_method === 'pickup' ? 'Olib ketish' : 'Yetkazib berish'}</span></div>
                     <div class="order-field-row"><span class="lbl">Manzil</span><span class="val">${escapeHtml(o.address || '-')}</span></div>
-                    ${o.comment ? `<div class="order-field-row"><span class="lbl">Izoh</span><span class="val">${escapeHtml(o.comment)}</span></div>` : ''}
+                    ${o.restaurant_comment ? `<div class="order-field-row"><span class="lbl">🍴 Restoranga</span><span class="val" style="background:#FEF3C7;padding:6px 10px;border-radius:6px;">${escapeHtml(o.restaurant_comment)}</span></div>` : ''}
+                    ${o.comment ? `<div class="order-field-row"><span class="lbl">🚴 Kuryerga</span><span class="val">${escapeHtml(o.comment)}</span></div>` : ''}
                     <div class="order-field-row"><span class="lbl">Jami</span><span class="val" style="color:var(--brand-green-dark);font-size:16px;">${fmtPrice(o.total_price)} UZS</span></div>
                     <div class="order-field-row">
                         <span class="lbl">Holat</span>
