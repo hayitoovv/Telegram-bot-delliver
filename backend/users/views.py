@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import TelegramUser, ChatMessage, SiteConfig
+from .models import TelegramUser, ChatMessage, SiteConfig, Promotion
 from .serializers import TelegramUserSerializer
 from food_delivery.telegram_auth import verify_telegram_data_detailed, verify_user_request
 from food_delivery.admin_auth import _valid_admin_ids
@@ -133,6 +133,32 @@ class PublicConfigView(APIView):
             'support_username': cfg.support_username,
             'yandex_maps_api_key': settings.YANDEX_MAPS_API_KEY,
         })
+
+
+class PromotionListView(APIView):
+    """Mini-app foydalanuvchilari uchun — barcha aksiyalar/elonlar ro'yxati."""
+
+    def post(self, request):
+        user_data, reason = verify_user_request(request)
+        if user_data is None:
+            return Response(
+                {'error': 'initData yaroqsiz', 'reason': reason or 'empty_init_data'},
+                status=403,
+            )
+        # Faqat yuborilgan elonlarni ko'rsatamiz (admin draft turibdi degan holat bo'lmasin)
+        qs = Promotion.objects.filter(sent_at__isnull=False).order_by('-created_at')[:50]
+        results = []
+        for p in qs:
+            img_url = None
+            if p.image:
+                img_url = request.build_absolute_uri(p.image.url)
+            results.append({
+                'id': p.id,
+                'text': p.text,
+                'image': img_url,
+                'created_at': (p.sent_at or p.created_at).isoformat(),
+            })
+        return Response({'promotions': results})
 
 
 class UserIssueTokenView(APIView):

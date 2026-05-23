@@ -7,6 +7,7 @@ urlpatterns = [
     path('config/', views.PublicConfigView.as_view(), name='public-config'),
     path('diag/', views.ClientDiagnosticsView.as_view(), name='client-diag'),
     path('user/issue-token/', views.UserIssueTokenView.as_view(), name='user-issue-token'),
+    path('promotions/', views.PromotionListView.as_view(), name='promotions-list'),
     path('chat/', views.ChatView.as_view(), name='chat'),
     path('chat/history/', views.ChatHistoryView.as_view(), name='chat-history'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
@@ -27,4 +28,7 @@ urlpatterns = [
     path('admin/admins/add/', admin_views.AdminAdminAddView.as_view()),
     path('admin/admins/<int:pk>/remove/', admin_views.AdminAdminRemoveView.as_view()),
     path('admin/admins/<int:pk>/promote/', admin_views.AdminAdminPromoteView.as_view()),
+    path('admin/promotions/', admin_views.AdminPromotionListView.as_view()),
+    path('admin/promotions/<int:pk>/', admin_views.AdminPromotionDetailView.as_view()),
+    path('admin/promotions/<int:pk>/resend/', admin_views.AdminPromotionResendView.as_view()),
 ]

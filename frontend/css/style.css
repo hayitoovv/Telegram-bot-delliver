@@ -3743,3 +3743,44 @@ body::-webkit-scrollbar,
     /* Mobile/tap qurilmalarda hover effektlar ba'zan tap'dan keyin chiqib qoladi */
     .product-hcard:hover { transform: none; }
 }
+
+/* ==========================================================
+   Bildirishnomalar (aksiya/elon) — mini-app sahifasi
+   ========================================================== */
+.notif-card {
+    background: #fff;
+    border: 1px solid var(--brand-border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin: 0 12px 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.notif-image {
+    width: 100%;
+    height: auto;
+    max-height: 240px;
+    object-fit: cover;
+    display: block;
+    background: #F3F4F6;
+}
+
+.notif-body {
+    padding: 12px 14px 14px;
+}
+
+.notif-text {
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--tg-theme-text-color);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.notif-date {
+    font-size: 11.5px;
+    color: var(--tg-theme-hint-color);
+    margin-top: 8px;
+    border-top: 1px dashed var(--brand-border);
+    padding-top: 8px;
+}

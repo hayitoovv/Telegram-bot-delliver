@@ -1423,14 +1423,63 @@ function deleteCurrentAddress() {
 }
 
 // Notifications ================================================
-function showNotificationsInfo() {
+async function showNotificationsInfo() {
     hideDrawer();
     document.getElementById('notifications-modal').style.display = 'flex';
     tg.HapticFeedback?.impactOccurred('light');
+    await loadNotifications();
 }
 
 function hideNotificationsPage() {
     document.getElementById('notifications-modal').style.display = 'none';
+}
+
+async function loadNotifications() {
+    const container = document.getElementById('notifications-list');
+    if (!container) return;
+    container.innerHTML = `<div class="empty-search-state"><div class="empty-search-title">${txt('loading')}</div></div>`;
+    try {
+        const data = await apiPost('promotions/', {});
+        renderNotifications(data.promotions || []);
+    } catch (e) {
+        console.error('Notifications load:', e);
+        container.innerHTML = `
+            <div class="empty-search-state">
+                <div class="empty-search-icon">🔔</div>
+                <div class="empty-search-title">${LANG === 'ru' ? 'Не удалось загрузить' : 'Yuklab bo\'lmadi'}</div>
+            </div>`;
+    }
+}
+
+function renderNotifications(list) {
+    const container = document.getElementById('notifications-list');
+    if (!list.length) {
+        container.innerHTML = `
+            <div class="empty-search-state">
+                <div class="empty-search-icon">🔔</div>
+                <div class="empty-search-title">${LANG === 'ru' ? 'Пока нет уведомлений' : 'Hozircha bildirishnoma yo\'q'}</div>
+            </div>`;
+        return;
+    }
+    const locale = LANG === 'ru' ? 'ru-RU' : 'uz-UZ';
+    container.innerHTML = list.map(n => {
+        const d = new Date(n.created_at);
+        const dateStr = d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })
+            + ' · ' + d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+        const img = n.image
+            ? `<img class="notif-image" src="${encodeURI(n.image)}" alt="" loading="lazy">`
+            : '';
+        // Telegram bot xabarlari HTML'da bo'ladi (<b>, <i>). Lekin foydalanuvchiga
+        // text sifatida ko'rsatamiz — XSS oldini olish uchun.
+        return `
+            <div class="notif-card">
+                ${img}
+                <div class="notif-body">
+                    <div class="notif-text">${escapeHtml(n.text || '')}</div>
+                    <div class="notif-date">${escapeHtml(dateStr)}</div>
+                </div>
+            </div>`;
+    }).join('');
 }
 
 // Language page ================================================

@@ -3,16 +3,18 @@ import logging
 import requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db.models import Count, Max, Q
 from django.conf import settings
 
-from .models import TelegramUser, ChatMessage, SiteConfig
+from .models import TelegramUser, ChatMessage, SiteConfig, Promotion
 from .serializers import TelegramUserSerializer
 from food_delivery.admin_auth import (
     check_admin, create_admin_token, _valid_admin_ids, _env_admin_ids,
     is_super_admin, require_super_admin,
 )
 from food_delivery.telegram_auth import verify_telegram_data_detailed
+from food_delivery.notifications import broadcast_promotion
 
 logger = logging.getLogger(__name__)
 
@@ -485,6 +487,96 @@ class BotAdminIdsView(APIView):
         if not provided or provided != expected:
             return Response({'error': 'Forbidden'}, status=403)
         return Response({'ids': list(_valid_admin_ids())})
+
+
+class AdminPromotionListView(APIView):
+    """Admin uchun aksiya/elonlar boshqaruvi.
+    GET: ro'yxat (oxirgi 100).
+    POST: yangi aksiya yaratish va darrov barcha foydalanuvchilarga broadcast."""
+    authentication_classes = []
+    permission_classes = []
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        qs = Promotion.objects.all().order_by('-created_at')[:100]
+        results = []
+        for p in qs:
+            img_url = None
+            if p.image:
+                img_url = request.build_absolute_uri(p.image.url)
+            results.append({
+                'id': p.id,
+                'text': p.text,
+                'image': img_url,
+                'created_at': p.created_at.isoformat(),
+                'sent_at': p.sent_at.isoformat() if p.sent_at else None,
+                'sent_count': p.sent_count,
+                'failed_count': p.failed_count,
+                'created_by': p.created_by_id,
+            })
+        return Response({'results': results, 'total': len(results)})
+
+    def post(self, request):
+        user, err = check_admin(request)
+        if err:
+            return err
+        text = (request.data.get('text') or '').strip()
+        if not text and not request.FILES.get('image'):
+            return Response({'error': 'Matn yoki rasm kerak'}, status=400)
+        if len(text) > 4000:
+            return Response({'error': 'Matn 4000 belgidan oshmasin'}, status=400)
+        # Atomic — rasm fail bo'lsa promo umuman yaratilmasin
+        promo = Promotion(text=text, created_by=user)
+        image = request.FILES.get('image')
+        if image:
+            promo.image = image
+        promo.save()
+        # Fon thread'da broadcast
+        broadcast_promotion(promo)
+        img_url = request.build_absolute_uri(promo.image.url) if promo.image else None
+        return Response({
+            'id': promo.id,
+            'text': promo.text,
+            'image': img_url,
+            'created_at': promo.created_at.isoformat(),
+            'broadcasting': True,
+        }, status=201)
+
+
+class AdminPromotionDetailView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def delete(self, request, pk):
+        user, err = require_super_admin(request)
+        if err:
+            return err
+        try:
+            promo = Promotion.objects.get(pk=pk)
+        except Promotion.DoesNotExist:
+            return Response({'error': 'Topilmadi'}, status=404)
+        promo.delete()
+        return Response({'ok': True})
+
+
+class AdminPromotionResendView(APIView):
+    """Mavjud aksiya/elonni qaytadan barcha userlarga yuborish."""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, pk):
+        user, err = check_admin(request)
+        if err:
+            return err
+        try:
+            promo = Promotion.objects.get(pk=pk)
+        except Promotion.DoesNotExist:
+            return Response({'error': 'Topilmadi'}, status=404)
+        broadcast_promotion(promo)
+        return Response({'ok': True, 'broadcasting': True})
 
 
 class AdminIssueTokenView(APIView):

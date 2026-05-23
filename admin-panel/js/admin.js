@@ -168,6 +168,7 @@ const VIEW_TITLES = {
     products: 'Mahsulotlar',
     categories: 'Kategoriyalar',
     users: 'Foydalanuvchilar',
+    promotions: 'Bildirishnomalar',
     admins: 'Adminlar',
     settings: 'Sozlamalar',
 };
@@ -201,6 +202,7 @@ async function loadView(view) {
         else if (view === 'products') await renderProducts(content);
         else if (view === 'categories') await renderCategories(content);
         else if (view === 'users') await renderUsers(content);
+        else if (view === 'promotions') await renderPromotions(content);
         else if (view === 'admins') await renderAdmins(content);
         else if (view === 'settings') await renderSettings(content);
     } catch (e) {
@@ -1323,6 +1325,185 @@ async function openUserDetail(id) {
             `,
             actions: [{ label: 'Yopish', class: 'btn-secondary', onClick: closeModal }],
         });
+    } catch (e) { toast('Xato: ' + e.message); }
+}
+
+// ==========================================================
+// Bildirishnomalar (aksiya/elon broadcast)
+// ==========================================================
+async function renderPromotions(content) {
+    content.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Yangi bildirishnoma yuborish</h2>
+                    <div class="card-subtitle">Barcha foydalanuvchilarga Telegram orqali yuboriladi</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <form class="form promo-form" id="promo-form" onsubmit="return false;" style="max-width:640px;">
+                    <div class="form-row">
+                        <div class="image-upload">
+                            <div class="image-upload-preview" id="promo-img-preview">📢</div>
+                            <label class="image-upload-label">
+                                Rasm tanlash (ixtiyoriy)
+                                <input type="file" id="promo-img-input" accept="image/*" style="display:none;">
+                            </label>
+                            <button type="button" class="btn-secondary" id="promo-img-clear" style="display:none;margin-top:6px;">Rasmni olib tashlash</button>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">Matn <span style="color:#EF4444;">*</span></label>
+                        <textarea class="input-field promo-text" id="promo-text" rows="6"
+                            placeholder="Aksiya yoki elon matnini kiriting...&#10;&#10;HTML formatlash mumkin: &lt;b&gt;Qalin&lt;/b&gt;, &lt;i&gt;Kursiv&lt;/i&gt;"
+                            maxlength="4000"></textarea>
+                        <div style="text-align:right;color:var(--text-muted);font-size:12px;margin-top:4px;">
+                            <span id="promo-char-count">0</span> / 4000
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;gap:10px;">
+                        <button type="button" class="btn-primary" id="promo-send-btn" onclick="sendPromotion()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:middle;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            Hammaga yuborish
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Yuborilgan bildirishnomalar</h2>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="promo-list"><div class="center-state"><div class="spinner"></div></div></div>
+            </div>
+        </div>
+    `;
+
+    // Image preview
+    const imgInput = document.getElementById('promo-img-input');
+    const imgPreview = document.getElementById('promo-img-preview');
+    const imgClear = document.getElementById('promo-img-clear');
+    imgInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const oldImg = imgPreview.querySelector('img');
+        if (oldImg && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
+        imgPreview.innerHTML = `<img src="${URL.createObjectURL(file)}">`;
+        imgClear.style.display = 'inline-block';
+    });
+    imgClear.addEventListener('click', () => {
+        imgInput.value = '';
+        const oldImg = imgPreview.querySelector('img');
+        if (oldImg && oldImg.src.startsWith('blob:')) URL.revokeObjectURL(oldImg.src);
+        imgPreview.innerHTML = '📢';
+        imgClear.style.display = 'none';
+    });
+
+    // Char counter
+    const text = document.getElementById('promo-text');
+    const counter = document.getElementById('promo-char-count');
+    text.addEventListener('input', () => counter.textContent = text.value.length);
+
+    await loadPromotionsList();
+}
+
+async function loadPromotionsList() {
+    const container = document.getElementById('promo-list');
+    if (!container) return;
+    try {
+        const d = await api('/api/admin/promotions/');
+        renderPromotionsList(d.results || []);
+    } catch (e) {
+        container.innerHTML = `<div class="center-state"><div class="state-text">Xato: ${escapeHtml(e.message)}</div></div>`;
+    }
+}
+
+function renderPromotionsList(list) {
+    const container = document.getElementById('promo-list');
+    if (!list.length) {
+        container.innerHTML = '<div class="center-state"><div class="state-icon">📭</div><div class="state-text">Hali bildirishnoma yo\'q</div></div>';
+        return;
+    }
+    container.innerHTML = list.map(p => {
+        const sentAt = p.sent_at ? new Date(p.sent_at) : null;
+        const sentStr = sentAt ? sentAt.toLocaleString('uz-UZ', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Yuborilmagan';
+        const img = p.image ? `<img class="promo-list-img" src="${encodeURI(p.image)}">` : '';
+        const stats = p.sent_at
+            ? `<span class="promo-stat-ok">✓ ${p.sent_count} yuborildi</span>${p.failed_count ? `<span class="promo-stat-fail">✗ ${p.failed_count} xato</span>` : ''}`
+            : '<span class="promo-stat-pending">⏳ Yuborilmoqda...</span>';
+        const text = (p.text || '').slice(0, 240) + ((p.text || '').length > 240 ? '…' : '');
+        return `
+            <div class="promo-list-item">
+                ${img}
+                <div class="promo-list-body">
+                    <div class="promo-list-text">${escapeHtml(text)}</div>
+                    <div class="promo-list-meta">
+                        <span>📅 ${escapeHtml(sentStr)}</span>
+                        ${stats}
+                    </div>
+                </div>
+                <div class="promo-list-actions">
+                    <button class="btn-row-action" onclick="resendPromotion(${p.id})">↻ Qayta yuborish</button>
+                    ${isSuperAdmin() ? `<button class="btn-row-action danger" onclick="deletePromotion(${p.id})">🗑</button>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function sendPromotion() {
+    const text = document.getElementById('promo-text').value.trim();
+    const file = document.getElementById('promo-img-input').files[0];
+    if (!text && !file) {
+        toast('Matn yoki rasm kiriting');
+        return;
+    }
+    if (!confirm(`Bildirishnomani BARCHA foydalanuvchilarga yuborasizmi?`)) return;
+    const btn = document.getElementById('promo-send-btn');
+    btn.disabled = true;
+    const oldHtml = btn.innerHTML;
+    btn.innerHTML = 'Yuborilmoqda...';
+    try {
+        const fd = new FormData();
+        fd.append('text', text);
+        if (file) fd.append('image', file);
+        await api('/api/admin/promotions/', { method: 'POST', form: fd });
+        toast('Yuborish boshlandi! Bir necha daqiqa ichida hammaga yetib boradi.');
+        // Form tozalash
+        document.getElementById('promo-text').value = '';
+        document.getElementById('promo-char-count').textContent = '0';
+        document.getElementById('promo-img-input').value = '';
+        document.getElementById('promo-img-preview').innerHTML = '📢';
+        document.getElementById('promo-img-clear').style.display = 'none';
+        // Ro'yxatni 1.5 sekund kutib yangilash (statistika kelishi uchun)
+        setTimeout(loadPromotionsList, 1500);
+    } catch (e) {
+        toast('Xato: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+    }
+}
+
+async function resendPromotion(id) {
+    if (!confirm("Qaytadan barcha foydalanuvchilarga yuborilsinmi?")) return;
+    try {
+        await api(`/api/admin/promotions/${id}/resend/`, { method: 'POST' });
+        toast('Yuborish boshlandi');
+        setTimeout(loadPromotionsList, 1500);
+    } catch (e) { toast('Xato: ' + e.message); }
+}
+
+async function deletePromotion(id) {
+    if (!confirm("Bildirishnomani o'chirasizmi?")) return;
+    try {
+        await api(`/api/admin/promotions/${id}/`, { method: 'DELETE' });
+        toast("O'chirildi");
+        await loadPromotionsList();
     } catch (e) { toast('Xato: ' + e.message); }
 }
 

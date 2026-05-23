@@ -44,6 +44,28 @@ class SiteConfig(models.Model):
         return obj
 
 
+class Promotion(models.Model):
+    """Admin tomonidan barcha foydalanuvchilarga yuboriladigan elon/aksiya."""
+    text = models.TextField(verbose_name="Matn")
+    image = models.ImageField(upload_to='promotions/', blank=True, null=True, verbose_name="Rasm")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan")
+    sent_at = models.DateTimeField(blank=True, null=True, verbose_name="Yuborilgan vaqt")
+    sent_count = models.PositiveIntegerField(default=0, verbose_name="Yuborildi")
+    failed_count = models.PositiveIntegerField(default=0, verbose_name="Xato")
+    created_by = models.ForeignKey(
+        TelegramUser, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='promotions_created', verbose_name="Yaratuvchi admin",
+    )
+
+    class Meta:
+        verbose_name = "Aksiya/Bildirishnoma"
+        verbose_name_plural = "Aksiyalar va bildirishnomalar"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Aksiya #{self.id} ({self.created_at:%d.%m.%Y})"
+
+
 class ChatMessage(models.Model):
     class Sender(models.TextChoices):
         USER = 'user', 'Foydalanuvchi'

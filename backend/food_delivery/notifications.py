@@ -2,12 +2,86 @@
 import html
 import logging
 import threading
+import time
 import requests
 from django.conf import settings
+from django.utils import timezone
 
 from food_delivery.admin_auth import _valid_admin_ids, create_admin_token
 
 logger = logging.getLogger(__name__)
+
+
+def broadcast_promotion(promo):
+    """Aksiya/elonni barcha foydalanuvchilarga Telegram orqali yuborish.
+    Fon thread'da bajariladi — admin panel javobi bloklamaydi.
+    Telegram URL'lar orqali rasm qabul qiladi (file_id yoki publichu URL)."""
+    from users.models import TelegramUser
+
+    bot_token = settings.TELEGRAM_BOT_TOKEN
+    if not bot_token:
+        logger.warning("TELEGRAM_BOT_TOKEN sozlanmagan — promo yuborilmadi")
+        return
+
+    text = (promo.text or '').strip()
+    image_url = None
+    if promo.image:
+        base = (getattr(settings, 'MINI_APP_URL', '') or '').rstrip('/')
+        image_url = f"{base}{promo.image.url}"
+
+    user_ids = list(TelegramUser.objects.values_list('telegram_id', flat=True))
+    if not user_ids:
+        logger.warning("Foydalanuvchi yo'q — promo yuborilmadi")
+        return
+
+    def _do_broadcast():
+        sent = 0
+        failed = 0
+        for tg_id in user_ids:
+            try:
+                if image_url:
+                    payload = {
+                        'chat_id': int(tg_id),
+                        'photo': image_url,
+                        'caption': text,
+                        'parse_mode': 'HTML',
+                    }
+                    endpoint = 'sendPhoto'
+                else:
+                    payload = {
+                        'chat_id': int(tg_id),
+                        'text': text,
+                        'parse_mode': 'HTML',
+                    }
+                    endpoint = 'sendMessage'
+                resp = requests.post(
+                    f"https://api.telegram.org/bot{bot_token}/{endpoint}",
+                    json=payload, timeout=15,
+                )
+                if resp.status_code == 200:
+                    sent += 1
+                else:
+                    failed += 1
+                    logger.warning("Promo %s -> tg=%s status=%s body=%s",
+                                   promo.id, tg_id, resp.status_code, resp.text[:200])
+                # Telegram rate limit: 30 msg/s. ~33ms gap = safe
+                time.sleep(0.04)
+            except Exception as e:
+                failed += 1
+                logger.error("Promo %s -> tg=%s xato: %s", promo.id, tg_id, e)
+
+        # Statistika yangilash
+        try:
+            promo.sent_at = timezone.now()
+            promo.sent_count = sent
+            promo.failed_count = failed
+            promo.save(update_fields=['sent_at', 'sent_count', 'failed_count'])
+            logger.info("Promo %s broadcast tugadi: %s ta yuborildi, %s ta xato",
+                        promo.id, sent, failed)
+        except Exception as e:
+            logger.error("Promo %s statistika saqlashda xato: %s", promo.id, e)
+
+    threading.Thread(target=_do_broadcast, daemon=True).start()
 
 
 def _delivery_label(method: str) -> str:
