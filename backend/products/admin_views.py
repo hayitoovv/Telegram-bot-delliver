@@ -65,7 +65,8 @@ class AdminCategoryListView(_BaseAdminView):
         user, err = check_admin(request)
         if err:
             return err
-        cat = Category.objects.create(
+        # Atomic — rasm saqlash fail bo'lsa kategoriya umuman yaratilmasin
+        cat = Category(
             name=request.data.get('name', '').strip()[:200],
             name_ru=request.data.get('name_ru', '').strip()[:200],
             is_active=str(request.data.get('is_active', 'true')).lower() in ('true', '1', 'on'),
@@ -74,7 +75,7 @@ class AdminCategoryListView(_BaseAdminView):
         image = request.FILES.get('image')
         if image:
             cat.image = image
-            cat.save(update_fields=['image'])
+        cat.save()
         return Response(category_to_dict(cat, request), status=status.HTTP_201_CREATED)
 
 
@@ -171,7 +172,8 @@ class AdminProductListView(_BaseAdminView):
         except (Category.DoesNotExist, ValueError, TypeError):
             return Response({'error': 'Kategoriya tanlanmagan'}, status=400)
 
-        product = Product.objects.create(
+        # Atomic — rasm saqlash fail bo'lsa mahsulot umuman yaratilmasin
+        product = Product(
             category=category,
             name=(request.data.get('name') or '').strip()[:200],
             name_ru=(request.data.get('name_ru') or '').strip()[:200],
@@ -183,7 +185,7 @@ class AdminProductListView(_BaseAdminView):
         image = request.FILES.get('image')
         if image:
             product.image = image
-            product.save(update_fields=['image'])
+        product.save()
         return Response(product_to_dict(product, request), status=status.HTTP_201_CREATED)
 
 
