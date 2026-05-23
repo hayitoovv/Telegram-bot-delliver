@@ -2323,11 +2323,13 @@ async function init() {
     refreshActiveOrdersBanner();
     // Agar URL'da ?chat_user_id=X bo'lsa va user admin bo'lsa — admin chat ochish
     if (window.__is_admin) enterAdminChatIfRequested();
-    // Agar URL'da ?open_chat=1 bo'lsa — oddiy chat'ni ochish
+    // URL parametrlari orqali ma'lum bo'limga to'g'ridan-to'g'ri o'tish
     try {
         const p = new URLSearchParams(window.location.search);
         if (p.get('open_chat') === '1' && !chatAdminTargetTgId) {
             openChat();
+        } else if (p.get('open_orders') === '1') {
+            openOrdersList();
         }
     } catch {}
 }

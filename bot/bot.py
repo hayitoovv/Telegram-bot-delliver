@@ -7,7 +7,7 @@ import asyncio
 import logging
 import httpx
 from dotenv import load_dotenv
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 USER_ID_RE = re.compile(r"🆔\s*(\d+)")
@@ -166,19 +166,18 @@ async def _fetch_user_token(user_id: int) -> str:
 
 
 async def get_keyboard(user_id: int, lang: str):
-    """Til ga qarab keyboard yaratish."""
-    base = MINI_APP_URL.rstrip('/') + '/'
-    # Telegram initData ba'zi clientlarda kelmasligi mumkin — signed user_token bilan fallback
+    """Til ga qarab keyboard yaratish — barcha URL'lar uchun bitta token chaqiriladi."""
     user_token = await _fetch_user_token(user_id)
-    params = f"lang={lang}"
-    if user_token:
-        params += f"&user_token={user_token}"
-    sep = '&' if '?' in base else '?'
-    mini_url = f"{base}{sep}{params}"
+    mini_url = _compose_mini_url(lang, user_token)
+    chat_url = _compose_mini_url(lang, user_token, 'open_chat=1')
+    orders_url = _compose_mini_url(lang, user_token, 'open_orders=1')
     keyboard = [
         [KeyboardButton(t(lang, 'menu'), web_app=WebAppInfo(url=mini_url))],
-        [KeyboardButton(t(lang, 'change_lang')), KeyboardButton(t(lang, 'chat'))],
-        [KeyboardButton(t(lang, 'my_orders'))],
+        [
+            KeyboardButton(t(lang, 'change_lang')),
+            KeyboardButton(t(lang, 'chat'), web_app=WebAppInfo(url=chat_url)),
+        ],
+        [KeyboardButton(t(lang, 'my_orders'), web_app=WebAppInfo(url=orders_url))],
     ]
     # Backend'dan admin ro'yxatini yangilash (env + DB)
     is_admin_user = await is_admin_async(user_id)
@@ -225,9 +224,35 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+def _compose_mini_url(lang: str, user_token: str, extra: str = '') -> str:
+    base = MINI_APP_URL.rstrip('/') + '/'
+    sep = '&' if '?' in base else '?'
+    params = f"lang={lang}"
+    if user_token:
+        params += f"&user_token={user_token}"
+    if extra:
+        params += f"&{extra}"
+    return f"{base}{sep}{params}"
+
+
+async def _build_mini_url(user_id: int, lang: str, extra: str = '') -> str:
+    """Mini-app uchun signed URL — bitta token bilan."""
+    return _compose_mini_url(lang, await _fetch_user_token(user_id), extra)
+
+
 async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = await get_user_lang(update.effective_user.id)
-    await update.message.reply_text(t(lang, 'no_orders'))
+    """Eski keyboard'dagi text tugma uchun fallback — inline WebApp tugma yuboradi."""
+    user = update.effective_user
+    lang = await get_user_lang(user.id)
+    url = await _build_mini_url(user.id, lang, 'open_orders=1')
+    label = "📋 Buyurtmalarim" if lang == 'uz' else "📋 Мои заказы"
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton(label, web_app=WebAppInfo(url=url))
+    ]])
+    text = ("Buyurtmalaringizni ko'rish uchun pastdagi tugmani bosing 👇"
+            if lang == 'uz' else
+            "Нажмите кнопку ниже, чтобы посмотреть свои заказы 👇")
+    await update.message.reply_text(text, reply_markup=keyboard)
 
 
 async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -259,8 +284,18 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def chat_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = await get_user_lang(update.effective_user.id)
-    await update.message.reply_text(t(lang, 'support'))
+    """Eski keyboard'dagi text tugma uchun fallback — inline WebApp tugma yuboradi."""
+    user = update.effective_user
+    lang = await get_user_lang(user.id)
+    url = await _build_mini_url(user.id, lang, 'open_chat=1')
+    label = "💬 Qo'llab-quvvatlash" if lang == 'uz' else "💬 Поддержка"
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton(label, web_app=WebAppInfo(url=url))
+    ]])
+    text = ("Qo'llab-quvvatlash chatini ochish uchun pastdagi tugmani bosing 👇"
+            if lang == 'uz' else
+            "Нажмите кнопку ниже, чтобы открыть чат поддержки 👇")
+    await update.message.reply_text(text, reply_markup=keyboard)
 
 
 async def admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
