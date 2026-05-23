@@ -139,6 +139,78 @@ const UI_TEXTS = {
         restaurant_comment_placeholder: "Mahsulot tayyorlash bo'yicha xohish...",
         my_addresses: "Manzillarim",
         new_address: "Yangi yaratish",
+        // Yangi qo'shilgan tarjimalar
+        active_order: "Faol buyurtma",
+        select_delivery_address: "Yetkazish manzilini tanlang",
+        choose_address: "Yetkazish manzilini tanlang",
+        register_title: "Telefon raqamingizni kiriting",
+        register_subtitle: "Buyurtmalaringiz va yetkazib berish jarayonini kuzatib borish uchun",
+        continue: "Davom etish",
+        terms_text: "Davom etish tugmasini bosish orqali siz bizning foydalanish qoidalarimiz ni qabul qilasiz.",
+        support_title: "Qo'llab quvvatlash xizmati",
+        online: "Online",
+        no_messages_yet: "Hali xabar yo'q",
+        message_placeholder: "Xabar",
+        // Drawer menyu
+        personal_info: "Shaxsiy ma'lumotlarim",
+        my_orders_menu: "Buyurtmalarim",
+        addresses_menu: "Manzillarim",
+        notifications: "Bildirishnomalar",
+        language: "Til",
+        about_us: "Biz haqimizda",
+        exit: "Chiqish",
+        author: "Yaratuvchi",
+        // Profile
+        phone_label: "Telefon raqam",
+        first_name_label: "Ism",
+        last_name_label: "Familiya",
+        first_name_placeholder: "Ismingiz",
+        last_name_placeholder: "Familiyangiz",
+        save_changes: "O'zgarishlarni saqlash",
+        // Orders
+        tab_active: "Faol",
+        tab_all: "Barchasi",
+        no_results: "Hech qanday natija topilmadi",
+        order_title: "Buyurtma",
+        receipt_status_new: "Yangi",
+        delivery_address_label: "Yetkazish manzili",
+        order_items_title: "Buyurtma",
+        delivery_label: "Yetkazib berish",
+        total_label_2: "Umumiy",
+        cancel_order: "Buyurtmani bekor qilish",
+        // Order detail
+        admin_waiting: "Admin javobi kutilmoqda",
+        go_to_payment: "To'lovga o'tish",
+        need_help: "Menga buyurtma bilan yordam kerak",
+        // Map
+        address_detecting_text: "Manzil tanlanmoqda...",
+        confirm: "Tasdiqlash",
+        search_address_placeholder: "Manzilni qidirish",
+        // Dialogs
+        cancel_order_q: "Buyurtmani bekor qilishni tasdiqlaysizmi?",
+        no_btn: "Yo'q",
+        yes_cancel: "Ha, bekor qilish",
+        delete_addr_q: "Manzilni o'chirmoqchimisiz?",
+        logout_q: "Haqiqatdan ham profilingizdan chiqib ketmoqchimisiz?",
+        // Language page
+        lang_uz: "O'zbekcha",
+        lang_ru: "Русский",
+        // About
+        working_hours: "Ish vaqti",
+        working_hours_text: "Dushanba–Yakshanba · 00:00 – 23:59",
+        branches: "Filiallar",
+        support: "Qo'llab-quvvatlash",
+        // Notifications
+        no_notifications_yet: "Hozircha bildirishnoma yo'q",
+        notifications_load_fail: "Yuklab bo'lmadi",
+        // Misc toasts and errors
+        toast_enter_name: "Ismingizni kiriting",
+        toast_saved: "Saqlandi",
+        toast_save_error: "Saqlashda xato",
+        toast_soon: "Tez orada qo'shiladi",
+        toast_order_cancelled: "Buyurtma bekor qilindi",
+        toast_error: "Xato",
+        unit_pcs: "dona",
     },
     ru: {
         search_placeholder: "Поиск продуктов",
@@ -198,6 +270,78 @@ const UI_TEXTS = {
         restaurant_comment_placeholder: "Пожелания по приготовлению...",
         my_addresses: "Мои адреса",
         new_address: "Создать новый",
+        // Yangi qo'shilgan tarjimalar
+        active_order: "Активный заказ",
+        select_delivery_address: "Выберите адрес доставки",
+        choose_address: "Выберите адрес доставки",
+        register_title: "Введите ваш номер телефона",
+        register_subtitle: "Для отслеживания заказов и процесса доставки",
+        continue: "Продолжить",
+        terms_text: "Нажимая кнопку \"Продолжить\", вы принимаете наши условия использования.",
+        support_title: "Служба поддержки",
+        online: "Онлайн",
+        no_messages_yet: "Пока нет сообщений",
+        message_placeholder: "Сообщение",
+        // Drawer menyu
+        personal_info: "Личные данные",
+        my_orders_menu: "Мои заказы",
+        addresses_menu: "Мои адреса",
+        notifications: "Уведомления",
+        language: "Язык",
+        about_us: "О нас",
+        exit: "Выйти",
+        author: "Разработчик",
+        // Profile
+        phone_label: "Номер телефона",
+        first_name_label: "Имя",
+        last_name_label: "Фамилия",
+        first_name_placeholder: "Ваше имя",
+        last_name_placeholder: "Ваша фамилия",
+        save_changes: "Сохранить изменения",
+        // Orders
+        tab_active: "Активные",
+        tab_all: "Все",
+        no_results: "Ничего не найдено",
+        order_title: "Заказ",
+        receipt_status_new: "Новый",
+        delivery_address_label: "Адрес доставки",
+        order_items_title: "Заказ",
+        delivery_label: "Доставка",
+        total_label_2: "Общая",
+        cancel_order: "Отменить заказ",
+        // Order detail
+        admin_waiting: "Ожидание ответа администратора",
+        go_to_payment: "Перейти к оплате",
+        need_help: "Мне нужна помощь с заказом",
+        // Map
+        address_detecting_text: "Определение адреса...",
+        confirm: "Подтвердить",
+        search_address_placeholder: "Поиск адреса",
+        // Dialogs
+        cancel_order_q: "Подтвердить отмену заказа?",
+        no_btn: "Нет",
+        yes_cancel: "Да, отменить",
+        delete_addr_q: "Удалить адрес?",
+        logout_q: "Вы действительно хотите выйти из профиля?",
+        // Language page
+        lang_uz: "O'zbekcha",
+        lang_ru: "Русский",
+        // About
+        working_hours: "Время работы",
+        working_hours_text: "Понедельник–Воскресенье · 00:00 – 23:59",
+        branches: "Филиалы",
+        support: "Поддержка",
+        // Notifications
+        no_notifications_yet: "Пока нет уведомлений",
+        notifications_load_fail: "Не удалось загрузить",
+        // Misc toasts and errors
+        toast_enter_name: "Введите имя",
+        toast_saved: "Сохранено",
+        toast_save_error: "Ошибка сохранения",
+        toast_soon: "Скоро будет доступно",
+        toast_order_cancelled: "Заказ отменён",
+        toast_error: "Ошибка",
+        unit_pcs: "шт",
     },
 };
 
@@ -1025,19 +1169,18 @@ async function saveProfile() {
     const firstName = document.getElementById('profile-first-name').value.trim();
     const lastName = document.getElementById('profile-last-name').value.trim();
     if (!firstName) {
-        showToast(LANG === 'ru' ? 'Введите имя' : "Ismingizni kiriting");
+        showToast(txt('toast_enter_name'));
         tg.HapticFeedback?.notificationOccurred('error');
         return;
     }
     try {
         await apiPost('profile/', { first_name: firstName, last_name: lastName });
-        showToast(LANG === 'ru' ? 'Сохранено' : "Saqlandi");
+        showToast(txt('toast_saved'));
         tg.HapticFeedback?.notificationOccurred('success');
         setTimeout(hideProfilePage, 600);
     } catch (e) {
         console.error('Profil saqlashda xato:', e);
-        const base = LANG === 'ru' ? 'Ошибка сохранения' : 'Saqlashda xato';
-        showToast(`${base}: ${e.message || ''}`);
+        showToast(`${txt('toast_save_error')}: ${e.message || ''}`);
         tg.HapticFeedback?.notificationOccurred('error');
     }
 }
@@ -1215,7 +1358,7 @@ function renderOrderDetail(order) {
 }
 
 function orderPay() {
-    showToast(LANG === 'ru' ? 'Скоро будет' : "Tez orada qo'shiladi");
+    showToast(txt('toast_soon'));
 }
 
 function orderHelp() {
@@ -1258,7 +1401,7 @@ function renderOrderReceipt(order) {
     document.getElementById('or-total').textContent = formatPrice(order.total_price) + ' UZS';
 
     const itemsContainer = document.getElementById('or-items');
-    const unitLabel = LANG === 'ru' ? 'шт' : 'dona';
+    const unitLabel = txt('unit_pcs');
     itemsContainer.innerHTML = (order.items || []).map(it => {
         const img = it.image
             ? `<img class="or-item-img" src="${encodeURI(it.image)}" alt="" loading="lazy">`
@@ -1313,11 +1456,11 @@ async function doCancelOrder() {
         renderOrdersList();
         updateActiveOrdersBanner();
         tg.HapticFeedback?.notificationOccurred('success');
-        showToast(LANG === 'ru' ? 'Заказ отменен' : 'Buyurtma bekor qilindi');
+        showToast(txt('toast_order_cancelled'));
     } catch (e) {
         console.error('Cancel order xato:', e);
         tg.HapticFeedback?.notificationOccurred('error');
-        showToast((LANG === 'ru' ? 'Ошибка' : 'Xato') + ': ' + (e.message || ''));
+        showToast(txt('toast_error') + ': ' + (e.message || ''));
     } finally {
         if (btn) btn.disabled = false;
     }
@@ -1411,7 +1554,7 @@ function deleteCurrentAddress() {
         selectedAddress = null;
         localStorage.removeItem('selected_address');
         const el = document.getElementById('address-text');
-        if (el) el.textContent = LANG === 'ru' ? 'Выберите адрес доставки' : 'Yetkazish manzilini tanlang';
+        if (el) el.textContent = txt('select_delivery_address');
     }
 
     editingAddressIndex = null;
@@ -1446,7 +1589,7 @@ async function loadNotifications() {
         container.innerHTML = `
             <div class="empty-search-state">
                 <div class="empty-search-icon">🔔</div>
-                <div class="empty-search-title">${LANG === 'ru' ? 'Не удалось загрузить' : 'Yuklab bo\'lmadi'}</div>
+                <div class="empty-search-title">${txt('notifications_load_fail')}</div>
             </div>`;
     }
 }
@@ -1457,7 +1600,7 @@ function renderNotifications(list) {
         container.innerHTML = `
             <div class="empty-search-state">
                 <div class="empty-search-icon">🔔</div>
-                <div class="empty-search-title">${LANG === 'ru' ? 'Пока нет уведомлений' : 'Hozircha bildirishnoma yo\'q'}</div>
+                <div class="empty-search-title">${txt('no_notifications_yet')}</div>
             </div>`;
         return;
     }
@@ -1738,7 +1881,7 @@ function showChatModal() {
     if (titleEl) {
         titleEl.textContent = chatAdminTargetTgId
             ? `Mijoz ${chatAdminTargetTgId}`
-            : (LANG === 'ru' ? 'Поддержка' : "Qo'llab quvvatlash xizmati");
+            : txt('support_title');
     }
     renderChatMessages();
     loadChatMessages();
